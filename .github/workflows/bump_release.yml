@@ -61,20 +61,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
 
-      - name: Get Event branch
-        id: event_branch
-        run: |
-          BASEREF=${{ github.event.base_ref }}
-          REFBRANCH=${BASEREF#refs/heads/}
-
-          echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
-          echo $REFBRANCH
-
-      - name: Checkout tagged branch
+      - name: Checkout release branch
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           fetch-depth: 0
-          ref: ${{ env.REFBRANCH }}
+          ref: ${{ env.RELEASE_BRANCH }}
 
       - name: Configure Git
         id: config_git
