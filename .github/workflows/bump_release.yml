@@ -39,87 +39,87 @@ jobs:
             exit 1
           fi
 
-  # bump_release:
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #     id-token: write
-  #   timeout-minutes: 10
-  #   steps:
-  #     - name: Harden the runner (Audit all outbound calls)
-  #       uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
-  #       with:
-  #         egress-policy: audit
+  bump_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    timeout-minutes: 10
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
 
-  #     - name: Checkout full repository
-  #       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-  #       with:
-  #         fetch-depth: 0
+      - name: Checkout full repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          fetch-depth: 0
 
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
 
-  #     - name: Get Event branch
-  #       id: event_branch
-  #       run: |
-  #         BASEREF=${{ github.event.base_ref }}
-  #         REFBRANCH=${BASEREF#refs/heads/}
+      - name: Get Event branch
+        id: event_branch
+        run: |
+          BASEREF=${{ github.event.base_ref }}
+          REFBRANCH=${BASEREF#refs/heads/}
 
-  #         echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
-  #         echo $REFBRANCH
+          echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
+          echo $REFBRANCH
 
-  #     - name: Checkout tagged branch
-  #       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-  #       with:
-  #         fetch-depth: 0
-  #         ref: ${{ env.REFBRANCH }}
+      - name: Checkout tagged branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          fetch-depth: 0
+          ref: ${{ env.REFBRANCH }}
 
-  #     - name: Configure Git
-  #       id: config_git
-  #       run: |
-  #         git config user.name github-actions
-  #         git config user.email github-actions@github.com
+      - name: Configure Git
+        id: config_git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
 
-  #         VERSION=${{ env.RELEASE_TAG }}
-  #         NEWVERSION=${VERSION:1}
+          VERSION=${{ env.RELEASE_TAG }}
+          NEWVERSION=${VERSION:1}
 
-  #         echo "NEWVERSION=${NEWVERSION}" >> $GITHUB_ENV
+          echo "NEWVERSION=${NEWVERSION}" >> $GITHUB_ENV
 
-  #     - name: Generate Changelog
-  #       id: changelog
-  #       run: |
-  #         release=${{ env.NEWVERSION }}
-  #         cl=CHANGELOG.md
-  #         today=$(date +%F)
-  #         header=$(head -n7 ${cl})
-  #         older=$(tail -n+7 ${cl})
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          release=${{ env.NEWVERSION }}
+          cl=CHANGELOG.md
+          today=$(date +%F)
+          header=$(head -n7 ${cl})
+          older=$(tail -n+7 ${cl})
 
-  #         # get all commits on head since the latest tag
-  #         changes=$(git log --no-merges --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD)
+          # get all commits on head since the latest tag
+          changes=$(git log --no-merges --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD)
 
-  #         echo "${header}" > ${cl}
-  #         echo "" >> ${cl}
-  #         echo "## [${release}] - ${today}" >> ${cl}
-  #         echo "" >> ${cl}
-  #         echo "### Changed" >> ${cl}
-  #         echo "" >> ${cl}
-  #         echo "${changes}" >> ${cl}
-  #         echo "${older}" >> ${cl}
-  #       env:
-  #         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          echo "${header}" > ${cl}
+          echo "" >> ${cl}
+          echo "## [${release}] - ${today}" >> ${cl}
+          echo "" >> ${cl}
+          echo "### Changed" >> ${cl}
+          echo "" >> ${cl}
+          echo "${changes}" >> ${cl}
+          echo "${older}" >> ${cl}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-  #     - name: Update release changes
-  #       id: git_commit
-  #       run: |
-  #         OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
-  #         sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
-  #         mkdir -p $HOME/go/bin
-  #         export PATH=$HOME/go/bin:$PATH
-  #         make operator-sdk
-  #         make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
-  #         git checkout -b version-bump-${{ env.NEWVERSION }}
-  #         git add -u
-  #         git commit -m "Bumping to version ${{ env.NEWVERSION }}"
-  #         git push origin version-bump-${{ env.NEWVERSION }}
+      # - name: Update release changes
+      #   id: git_commit
+      #   run: |
+      #     OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
+      #     sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
+      #     mkdir -p $HOME/go/bin
+      #     export PATH=$HOME/go/bin:$PATH
+      #     make operator-sdk
+      #     make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
+      #     git checkout -b version-bump-${{ env.NEWVERSION }}
+      #     git add -u
+      #     git commit -m "Bumping to version ${{ env.NEWVERSION }}"
+      #     git push origin version-bump-${{ env.NEWVERSION }}
