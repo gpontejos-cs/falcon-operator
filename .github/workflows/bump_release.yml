@@ -111,7 +111,7 @@ jobs:
           export PATH=$HOME/go/bin:$PATH
           make operator-sdk
           make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
-          git checkout -b version-bump-${{ env.NEWVERSION }}-${{ github.run_number }}
+          git checkout -b version-bump-build-${{ github.run_number }}
           git add -u
           git commit -m "Bumping to version ${{ env.NEWVERSION }}"
-          git push origin version-bump-${{ env.NEWVERSION }}-${{ github.run_number }}
+          git push origin version-bump-build-${{ github.run_number }}
