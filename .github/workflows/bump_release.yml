@@ -66,6 +66,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ env.RELEASE_BRANCH }}
+          fetch-tags: true
 
       - name: Configure Git
         id: config_git
