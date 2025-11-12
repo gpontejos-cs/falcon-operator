@@ -101,16 +101,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      # - name: Update release changes
-      #   id: git_commit
-      #   run: |
-      #     OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
-      #     sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
-      #     mkdir -p $HOME/go/bin
-      #     export PATH=$HOME/go/bin:$PATH
-      #     make operator-sdk
-      #     make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
-      #     git checkout -b version-bump-${{ env.NEWVERSION }}
-      #     git add -u
-      #     git commit -m "Bumping to version ${{ env.NEWVERSION }}"
-      #     git push origin version-bump-${{ env.NEWVERSION }}
+      - name: Update release changes
+        id: git_commit
+        run: |
+          OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
+          sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
+          mkdir -p $HOME/go/bin
+          export PATH=$HOME/go/bin:$PATH
+          make operator-sdk
+          make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
+          git checkout -b version-bump-${{ env.NEWVERSION }}-${{ github.run_number }}
+          git add -u
+          git commit -m "Bumping to version ${{ env.NEWVERSION }}"
+          git push origin version-bump-${{ env.NEWVERSION }}-${{ github.run_number }}
