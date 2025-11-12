@@ -17,7 +17,7 @@ env:
   IMAGE_REGISTRY: quay.io
   IMAGE_NAMESPACE: crowdstrike
   RELEASE_TAG: ${{ github.event.inputs.version }}
-  RELEASE_BRANCH: maint-1.0
+  RELEASE_BRANCH: update-release-workflows
 
 jobs:
   validate_branch:
