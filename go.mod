@@ -2,6 +2,8 @@ module github.com/crowdstrike/falcon-operator
 
 go 1.23.0
 
+replace github.com/crowdstrike/gofalcon => github.com/gpontejos-cs/gofalcon v0.0.0-20251203165750-0180967ab151
+
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/aws/aws-sdk-go-v2 v1.26.0
