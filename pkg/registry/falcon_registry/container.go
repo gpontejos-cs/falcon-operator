@@ -22,7 +22,7 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 		return "", err
 	}
 
-	regionalFilter := func(tag string) bool {
+	regionedFilter := func(tag string) bool {
 		tagContains := ".container"
 		if sensorType == falcon.ImageSensor || sensorType == falcon.KacSensor {
 			tagContains = ""
@@ -42,15 +42,15 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 	case falcon.KacSensor:
 		tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.KacSensor), unifiedFilter)
 		if err != nil {
-			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedKacSensor), regionalFilter)
+			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedKacSensor), regionedFilter)
 		}
 	case falcon.SidecarSensor:
 		tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.SidecarSensor), unifiedFilter)
 		if err != nil {
-			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedSidecarSensor), regionalFilter)
+			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedSidecarSensor), regionedFilter)
 		}
 	default:
-		tag, err = lastTag(ctx, systemContext, reg.imageUriContainer(sensorType), regionalFilter)
+		tag, err = lastTag(ctx, systemContext, reg.imageUriContainer(sensorType), regionedFilter)
 	}
 
 	return tag, err
