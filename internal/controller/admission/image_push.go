@@ -139,11 +139,7 @@ func (r *FalconAdmissionReconciler) registryUri(ctx context.Context, falconAdmis
 			return "", err
 		}
 
-		if falconAdmission.Spec.Version != nil && falcon_registry.IsMinimumUnifiedSensorVersion(*falconAdmission.Spec.Version, falcon.KacSensor) {
-			return falcon.FalconContainerSensorImageURI(cloud, falcon.KacSensor), nil
-		}
-
-		return falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedKacSensor), nil
+		return falcon.FalconContainerSensorImageURI(cloud, falcon.KacSensor), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", falconAdmission.Spec.Registry.Type)
 	}
@@ -167,6 +163,17 @@ func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmissio
 	imageTag, err := r.setImageTag(ctx, falconAdmission)
 	if err != nil {
 		return "", fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
+	}
+
+	if falconAdmission.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
+		semver := strings.Split(imageTag, "-")[0]
+		if !falcon_registry.IsMinimumUnifiedSensorVersion(semver, falcon.KacSensor) {
+			cloud, err := falconAdmission.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
+			if err != nil {
+				return "", err
+			}
+			registryUri = falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedKacSensor)
+		}
 	}
 
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
