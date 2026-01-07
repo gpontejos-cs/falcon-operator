@@ -7877,6 +7877,79 @@ spec:
                           missing.
                         type: string
                     type: object
+                  vaultConfig:
+                    default: {}
+                    description: |-
+                      VaultConfig configures HashiCorp Vault integration for secret management across multiple clusters.
+                      When configured, secrets will be retrieved from Vault and injected into the Falcon Sensor.
+                    properties:
+                      address:
+                        description: Central Vault server address
+                        type: string
+                      multiCluster:
+                        description: Multi-cluster configuration
+                        properties:
+                          authPath:
+                            description: Auth method path (defaults to kubernetes-{clusterID})
+                            type: string
+                          autoDetectCluster:
+                            description: Auto-detect cluster ID from node labels/annotations
+                            type: boolean
+                          clusterID:
+                            description: Current cluster identifier
+                            type: string
+                          role:
+                            description: Vault role for this cluster
+                            type: string
+                          serviceAccount:
+                            description: Service account for authentication
+                            type: string
+                          serviceAccountNamespace:
+                            description: Namespace for the service account
+                            type: string
+                        required:
+                        - clusterID
+                        - role
+                        type: object
+                      refreshInterval:
+                        description: Refresh interval
+                        type: string
+                      secrets:
+                        description: Secrets to inject
+                        items:
+                          description: VaultSecret defines a secret to retrieve from
+                            Vault
+                          properties:
+                            clusterSpecific:
+                              description: Cluster-specific path prefix
+                              type: boolean
+                            envVar:
+                              type: string
+                            key:
+                              type: string
+                            path:
+                              type: string
+                          required:
+                          - envVar
+                          - key
+                          - path
+                          type: object
+                        type: array
+                      tls:
+                        description: TLS configuration
+                        properties:
+                          caSecret:
+                            type: string
+                          clientCertSecret:
+                            type: string
+                          insecureSkipVerify:
+                            type: boolean
+                        type: object
+                    required:
+                    - address
+                    - multiCluster
+                    - secrets
+                    type: object
                 type: object
               falconSecret:
                 default:
@@ -9364,6 +9437,78 @@ spec:
                       version will be selected when this version specifier is missing.
                     type: string
                 type: object
+              vaultConfig:
+                default: {}
+                description: |-
+                  VaultConfig configures HashiCorp Vault integration for secret management across multiple clusters.
+                  When configured, secrets will be retrieved from Vault and injected into the Falcon Sensor.
+                properties:
+                  address:
+                    description: Central Vault server address
+                    type: string
+                  multiCluster:
+                    description: Multi-cluster configuration
+                    properties:
+                      authPath:
+                        description: Auth method path (defaults to kubernetes-{clusterID})
+                        type: string
+                      autoDetectCluster:
+                        description: Auto-detect cluster ID from node labels/annotations
+                        type: boolean
+                      clusterID:
+                        description: Current cluster identifier
+                        type: string
+                      role:
+                        description: Vault role for this cluster
+                        type: string
+                      serviceAccount:
+                        description: Service account for authentication
+                        type: string
+                      serviceAccountNamespace:
+                        description: Namespace for the service account
+                        type: string
+                    required:
+                    - clusterID
+                    - role
+                    type: object
+                  refreshInterval:
+                    description: Refresh interval
+                    type: string
+                  secrets:
+                    description: Secrets to inject
+                    items:
+                      description: VaultSecret defines a secret to retrieve from Vault
+                      properties:
+                        clusterSpecific:
+                          description: Cluster-specific path prefix
+                          type: boolean
+                        envVar:
+                          type: string
+                        key:
+                          type: string
+                        path:
+                          type: string
+                      required:
+                      - envVar
+                      - key
+                      - path
+                      type: object
+                    type: array
+                  tls:
+                    description: TLS configuration
+                    properties:
+                      caSecret:
+                        type: string
+                      clientCertSecret:
+                        type: string
+                      insecureSkipVerify:
+                        type: boolean
+                    type: object
+                required:
+                - address
+                - multiCluster
+                - secrets
+                type: object
             type: object
           status:
             description: FalconNodeSensorStatus defines the observed state of FalconNodeSensor
@@ -10067,7 +10212,8 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:1.6.0
+        image: controller:latest
+        imagePullPolicy: Never
         livenessProbe:
           httpGet:
             path: /healthz

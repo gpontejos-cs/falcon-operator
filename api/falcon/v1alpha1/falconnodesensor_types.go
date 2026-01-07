@@ -51,6 +51,12 @@ type FalconNodeSensorSpec struct {
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Configurations used for internal testing",order=6
 	Internal FalconInternal `json:"internal,omitempty"`
+
+	// VaultConfig configures HashiCorp Vault integration for secret management across multiple clusters.
+	// When configured, secrets will be retrieved from Vault and injected into the Falcon Sensor.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Vault Configuration",order=7
+	VaultConfig VaultConfig `json:"vaultConfig,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.

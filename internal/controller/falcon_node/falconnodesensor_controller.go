@@ -43,6 +43,7 @@ type FalconNodeSensorReconciler struct {
 	Scheme          *runtime.Scheme
 	reconcileObject func(client.Object)
 	tracker         sensorversion.Tracker
+	VaultManager    falconv1alpha1.VaultClientManager // Use the generic interface
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -191,6 +192,65 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	if nodesensor.Spec.VaultConfig.Address != "" {
+		// Handle Vault configuration for secret management
+		if r.VaultManager == nil {
+			r.VaultManager = falconv1alpha1.NewVaultClientManager(r.Client)
+		}
+
+		vaultClient, err := r.VaultManager.GetVaultClient(ctx, &nodesensor.Spec.VaultConfig, nodesensor.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to get vault client: %w", err)
+		}
+
+		secretData, err := falconv1alpha1.FetchSecretsFromVault(ctx, vaultClient, nodesensor.Spec.VaultConfig.Secrets)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch secrets from vault: %w", err)
+		}
+
+		// Extract Falcon API credentials from Vault secrets
+		if clientID, exists := secretData["falcon-client-id"]; exists {
+			if clientSecret, exists := secretData["falcon-client-secret"]; exists {
+				// Create or update FalconAPI configuration with Vault secrets
+				if nodesensor.Spec.FalconAPI == nil {
+					nodesensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{}
+				}
+
+				// Override credentials from Vault, preserving other settings like CloudRegion
+				nodesensor.Spec.FalconAPI.ClientId = clientID
+				nodesensor.Spec.FalconAPI.ClientSecret = clientSecret
+
+				// Handle optional CID (Customer ID) from Vault
+				if cid, exists := secretData["falcon-cid"]; exists {
+					nodesensor.Spec.FalconAPI.CID = &cid
+				}
+
+				logger.Info("Successfully integrated Vault secrets with Falcon API configuration")
+			} else {
+				logger.Info("falcon-client-secret not found in Vault secrets, skipping Falcon API integration")
+			}
+		} else {
+			logger.Info("falcon-client-id not found in Vault secrets, skipping Falcon API integration")
+		}
+
+		// Handle Falcon sensor configuration secrets (like provisioning token and CID)
+		if provisioningToken, exists := secretData["falcon-provisioning-token"]; exists {
+			// Update the Falcon sensor spec with the provisioning token
+			nodesensor.Spec.Falcon.PToken = provisioningToken
+			logger.Info("Successfully integrated Vault provisioning token with Falcon sensor configuration")
+		}
+
+		if sensorCID, exists := secretData["falcon-cid"]; exists {
+			// Update the Falcon sensor spec with the CID (this is separate from the API CID)
+			nodesensor.Spec.Falcon.CID = &sensorCID
+			logger.Info("Successfully integrated Vault CID with Falcon sensor configuration")
+		}
+
+		// Store any remaining secrets as environment variables for sensor configuration
+		// This can be extended to handle other secrets like CID, provisioning tokens, etc.
+		logger.Info("Successfully processed Vault configuration", "secretCount", len(secretData))
 	}
 
 	if shouldTrackSensorVersions(nodesensor) {
