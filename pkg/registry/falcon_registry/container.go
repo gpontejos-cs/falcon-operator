@@ -12,6 +12,7 @@ const (
 	MinimumUnifiedNodeSensorVersion    = "7.31.0"
 	MinimumUnifiedKacSensorVersion     = "7.33.0"
 	MinimumUnifiedSidecarSensorVersion = "7.33.0"
+	MinimumUnifiedImageSensorVersion   = "1.0.24"
 )
 
 func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falcon.SensorType, versionRequested *string) (string, error) {
@@ -49,6 +50,11 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 		if err != nil {
 			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedSidecarSensor), regionedFilter)
 		}
+	case falcon.ImageSensor:
+		tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.ImageSensor), unifiedFilter)
+		if err != nil {
+			tag, err = lastTag(ctx, systemContext, falcon.FalconContainerSensorImageURI(reg.falconCloud, falcon.RegionedImageSensor), regionedFilter)
+		}
 	default:
 		tag, err = lastTag(ctx, systemContext, reg.imageUriContainer(sensorType), regionedFilter)
 	}
@@ -68,6 +74,8 @@ func IsMinimumUnifiedSensorVersion(version string, sensorType falcon.SensorType)
 		return semver.Compare("v"+version, "v"+MinimumUnifiedKacSensorVersion) >= 0
 	case falcon.SidecarSensor:
 		return semver.Compare("v"+version, "v"+MinimumUnifiedSidecarSensorVersion) >= 0
+	case falcon.ImageSensor:
+		return semver.Compare("v"+version, "v"+MinimumUnifiedImageSensorVersion) >= 0
 	}
 
 	return false
