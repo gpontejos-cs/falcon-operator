@@ -339,6 +339,8 @@ func (r *FalconAdmissionReconciler) reconcileResourceQuota(ctx context.Context, 
 
 	podLimit := resource.MustParse(defaultPodLimit)
 	if existingRQ.Spec.Hard["pods"] != podLimit {
+		// Set GVK on rq since it's not populated when retrieved from the API server
+		rq.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ResourceQuota"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, rq)
 		if err != nil {
 			return err
@@ -445,6 +447,8 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 
 	if !reflect.DeepEqual(service.Spec.Ports, existingService.Spec.Ports) {
 		existingService.Spec.Ports = service.Spec.Ports
+		// Set GVK on existingService since it's not populated when retrieved from the API server
+		existingService.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingService); err != nil {
 			return false, err
 		}
@@ -522,6 +526,8 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 
 	if updated {
 		existingWebhook.Webhooks = webhook.Webhooks
+		// Set GVK on existingWebhook since it's not populated when retrieved from the API server
+		existingWebhook.SetGroupVersionKind(arv1.SchemeGroupVersion.WithKind("ValidatingWebhookConfiguration"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingWebhook); err != nil {
 			return false, err
 		}
@@ -715,6 +721,29 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			}
 		}
 
+		mergedTolerations := dep.Spec.Template.Spec.Tolerations
+		for _, existingTol := range existingDeployment.Spec.Template.Spec.Tolerations {
+			found := false
+			for _, specTol := range dep.Spec.Template.Spec.Tolerations {
+				if reflect.DeepEqual(existingTol, specTol) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				mergedTolerations = append(mergedTolerations, existingTol)
+			}
+		}
+
+		if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+			log.V(1).Info("Updating FalconAdmission Deployment: Tolerations changed",
+				"old", existingDeployment.Spec.Template.Spec.Tolerations,
+				"new", mergedTolerations)
+			existingDeployment.Spec.Template.Spec.Tolerations = mergedTolerations
+			updated = true
+		}
+
 		if updated {
 			existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 			if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
@@ -762,6 +791,8 @@ func (r *FalconAdmissionReconciler) reconcileRegistrySecret(ctx context.Context,
 	}
 
 	if !reflect.DeepEqual(secret.Data, existingSecret.Data) {
+		// Set GVK on existingSecret since it's not populated when retrieved from the API server
+		existingSecret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingSecret)
 		if err != nil {
 			return err
@@ -792,6 +823,8 @@ func (r *FalconAdmissionReconciler) reconcileImageStream(ctx context.Context, re
 
 	if !reflect.DeepEqual(imageStream.Spec, existingImageStream.Spec) {
 		existingImageStream.Spec = imageStream.Spec
+		// Set GVK on existingImageStream since it's not populated when retrieved from the API server
+		existingImageStream.SetGroupVersionKind(imagev1.SchemeGroupVersion.WithKind("ImageStream"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingImageStream)
 		if err != nil {
 			return existingImageStream, err
@@ -846,6 +879,8 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	}
 
 	log.Info("Rolling FalconAdmission Deployment due to non-deployment configuration change")
+	// Set GVK on existingDeployment since it's not populated when retrieved from the API server
+	existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 	if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
 		return err
 	}
