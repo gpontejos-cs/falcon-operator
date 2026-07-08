@@ -886,6 +886,7 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 	return envVars
 }
 
+
 func getNodeAffinity(nodeAffinity *corev1.NodeAffinity) *corev1.Affinity {
 	if nodeAffinity != nil && !reflect.DeepEqual(nodeAffinity, corev1.NodeAffinity{}) {
 		return &corev1.Affinity{NodeAffinity: nodeAffinity}

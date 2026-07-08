@@ -50,6 +50,7 @@ const (
 	FalconSidecarSensor       = "container_sensor"
 	FalconAdmissionController = "admission_controller"
 	FalconImageAnalyzer       = "falcon-imageanalyzer"
+	FalconCloudGuard          = "falcon-cloudguard"
 	FalconFinalizer           = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue       = "crowdstrike"
 	FalconPartOfValue         = "Falcon"
@@ -63,6 +64,36 @@ const (
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
+
+	CloudGuardServiceAccountName      = "falcon-clusterguard-sa"
+	CloudGuardDeploymentName          = "falcon-clusterguard"
+	CloudGuardConfigMapName           = "falcon-clusterguard-config"
+	CloudGuardClusterRoleName         = "falcon-clusterguard-resource-reader"
+	CloudGuardClusterRoleBindingName  = "falcon-clusterguard-security-crb"
+	CloudGuardRoleName                = "falcon-clusterguard-role"
+	CloudGuardRoleBindingName         = "falcon-clusterguard-rolebinding"
+	CloudGuardWebhookServiceName      = "webhook"
+	CloudGuardAPIServiceName          = "api"
+	CloudGuardWebhookPort             = int32(4443)
+	CloudGuardWebhookPortStr          = "4443"
+	CloudGuardGRPCPort                = int32(50051)
+	CloudGuardGRPCPortStr             = "50051"
+	CloudGuardWatcherHTTPPort         = int32(4080)
+	CloudGuardWatcherHTTPPortStr      = "4080"
+	CloudGuardTLSSecretName           = "falcon-clusterguard-tls"
+	CloudGuardAPITLSSecretName        = "falcon-api-tls"
+	CloudGuardAPICASecretName         = "falcon-api-ca"
+	CloudGuardSensorTLSSecretName     = "falcon-sensor-tls"
+	CloudGuardValidatingWebhookName   = "validating.falcon-kac.crowdstrike.com"
+	CloudGuardComponentName           = "ksp"
+
+	CloudGuardSensorServiceAccountName     = "crowdstrike-falcon-sa"
+	CloudGuardSensorConfigMapName          = "falcon-sensor-config"
+	CloudGuardSensorClusterRoleBindingName = "falcon-sensor-access-binding"
+	CloudGuardSensorClusterRoleName        = "falcon-sensor-access-role"
+	CloudGuardSensorDaemonSetName          = "falcon-sensor"
+	CloudGuardSensorCleanupServiceAccountName = "crowdstrike-falcon-sa-node-cleanup"
+	CloudGuardSensorCleanupDaemonSetName      = "falcon-sensor-node-cleanup"
 
 	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
 	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"

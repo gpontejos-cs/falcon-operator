@@ -6,7 +6,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
 func ServiceAccount(name string, namespace string, component string, annotations map[string]string, imagePullSecrets []corev1.LocalObjectReference) *corev1.ServiceAccount {
 	labels := common.CRLabels("serviceaccount", name, component)
 

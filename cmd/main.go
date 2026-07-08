@@ -45,6 +45,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
+	cloudguardcontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_cloudguard"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	falcondeployment "github.com/crowdstrike/falcon-operator/internal/controller/falcon_deployment"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
@@ -63,10 +64,11 @@ var (
 	setupLog          = ctrl.Log.WithName("setup")
 	environment       = "Kubernetes"
 	requiredCacheObjs = map[client.Object]cache.ByObject{
-		&falconv1alpha1.FalconAdmission{}:  {},
-		&falconv1alpha1.FalconNodeSensor{}: {},
-		&falconv1alpha1.FalconContainer{}:  {},
-		&falconv1alpha1.FalconDeployment{}: {},
+		&falconv1alpha1.FalconAdmission{}:    {},
+		&falconv1alpha1.FalconNodeSensor{}:   {},
+		&falconv1alpha1.FalconContainer{}:    {},
+		&falconv1alpha1.FalconDeployment{}:   {},
+		&falconv1alpha1.FalconCloudGuard{}:   {},
 		&schedulingv1.PriorityClass{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 		},
@@ -89,7 +91,7 @@ var (
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 		},
 		&arv1.ValidatingWebhookConfiguration{}: {
-			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 		},
 		&corev1.Namespace{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "namespace"}),
@@ -99,6 +101,9 @@ var (
 		},
 		&rbacv1.ClusterRoleBinding{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "clusterrolebinding"}),
+		},
+		&rbacv1.RoleBinding{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "rolebinding"}),
 		},
 		&corev1.ServiceAccount{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "serviceaccount"}),
@@ -320,6 +325,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconDeployment")
+		os.Exit(1)
+	}
+	if err = (&cloudguardcontroller.FalconCloudGuardReconciler{
+		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FalconCloudGuard")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
