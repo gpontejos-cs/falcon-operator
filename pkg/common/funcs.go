@@ -230,7 +230,7 @@ func ImageVersion(image string) *string {
 	}
 }
 
-func GetNamespacedObject(ctx context.Context, client client.Client, apiReader client.Reader, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func GetWithFallback(ctx context.Context, client client.Client, apiReader client.Reader, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	err := client.Get(ctx, key, obj, opts...)
 	if !errors.IsNotFound(err) {
 		return err

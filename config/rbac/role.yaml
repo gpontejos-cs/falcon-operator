@@ -142,7 +142,7 @@ rules:
   - falcon.crowdstrike.com
   resources:
   - falconadmissions
-  - falconcloudguards
+  - falconclusterguards
   - falconcontainers
   - falcondeployments
   - falconimageanalyzers
@@ -159,7 +159,7 @@ rules:
   - falcon.crowdstrike.com
   resources:
   - falconadmissions/finalizers
-  - falconcloudguards/finalizers
+  - falconclusterguards/finalizers
   - falcondeployments/finalizers
   - falconimageanalyzers/finalizers
   - falconnodesensors/finalizers
@@ -169,7 +169,7 @@ rules:
   - falcon.crowdstrike.com
   resources:
   - falconadmissions/status
-  - falconcloudguards/status
+  - falconclusterguards/status
   - falconcontainers/finalizers
   - falconcontainers/status
   - falcondeployments/status

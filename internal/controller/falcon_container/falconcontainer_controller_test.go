@@ -303,7 +303,7 @@ var _ = Describe("FalconContainer controller", func() {
 			By("Checking if Deployment was created with updated config map")
 			Eventually(func() error {
 				containerConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
+				err = common.GetWithFallback(
 					ctx,
 					falconContainerReconciler.Client,
 					falconContainerReconciler.Reader,

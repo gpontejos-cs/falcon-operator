@@ -252,7 +252,7 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 			By("Checking if Deployment was created with updated config map")
 			Eventually(func() error {
 				imageAnalyzerConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
+				err = common.GetWithFallback(
 					ctx,
 					falconImageAnalyzerReconciler.Client,
 					falconImageAnalyzerReconciler.Reader,

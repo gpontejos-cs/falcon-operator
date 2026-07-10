@@ -1,58 +1,19 @@
-package controllers
+package admission
 
 import (
-	"context"
 	"fmt"
-	"reflect"
 
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconCloudGuardReconciler) reconcileDeployment(ctx context.Context, req ctrl.Request, log logr.Logger, fcg *falconv1alpha1.FalconCloudGuard) error {
-	imageUri := fcg.Spec.Image
-	if imageUri == "" && fcg.Spec.FalconAPI != nil && fcg.Spec.FalconAPI.CID != nil && *fcg.Spec.FalconAPI.CID != "" {
-		imageUri = *fcg.Spec.FalconAPI.CID
-	}
-
-	imagePullPolicy := fcg.Spec.ImagePullPolicy
-	if imagePullPolicy == "" {
-		imagePullPolicy = corev1.PullIfNotPresent
-	}
-
-	dep := cloudGuardDeployment(common.CloudGuardDeploymentName, fcg.Spec.InstallNamespace, imageUri, imagePullPolicy, fcg.Spec.ImagePullSecrets)
-	existing := &appsv1.Deployment{}
-
-	err := r.Get(ctx, types.NamespacedName{Name: common.CloudGuardDeploymentName, Namespace: fcg.Spec.InstallNamespace}, existing)
-	if err != nil && apierrors.IsNotFound(err) {
-		return k8sutils.Create(r.Client, r.Scheme, ctx, req, log, fcg, &fcg.Status, dep)
-	} else if err != nil {
-		log.Error(err, "Failed to get FalconCloudGuard Deployment")
-		return err
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers, existing.Spec.Template.Spec.Containers) {
-		existing.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
-		existing.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
-		return k8sutils.Update(r.Client, ctx, req, log, fcg, &fcg.Status, existing)
-	}
-
-	return nil
-}
-
-// cloudGuardDeployment builds the Deployment for FalconCloudGuard with 3 containers:
+// ClusterGuardDeployment builds the Deployment for FalconClusterGuard with 3 containers:
 // falcon-ac (admission controller), falcon-client (webhook), and falcon-watcher (event watcher + gRPC API).
-func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy corev1.PullPolicy, imagePullSecrets []corev1.LocalObjectReference) *appsv1.Deployment {
+func ClusterGuardDeployment(name, namespace, imageUri string, imagePullPolicy corev1.PullPolicy, imagePullSecrets []corev1.LocalObjectReference) *appsv1.Deployment {
 	runNonRoot := true
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
@@ -69,7 +30,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 		"app": name,
 	}
 
-	apiServiceName := fmt.Sprintf("%s.%s.svc", common.CloudGuardAPIServiceName, namespace)
+	apiServiceName := fmt.Sprintf("%s.%s.svc", common.ClusterGuardAPIServiceName, namespace)
 
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -103,7 +64,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 				Spec: corev1.PodSpec{
 					ShareProcessNamespace:         &shareProcessNamespace,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            common.CloudGuardServiceAccountName,
+					ServiceAccountName:            common.ClusterGuardServiceAccountName,
 					PriorityClassName:             common.FalconPriorityClassName,
 					ImagePullSecrets:              imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
@@ -140,7 +101,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 							Name: name + "-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.CloudGuardTLSSecretName,
+									SecretName: common.ClusterGuardTLSSecretName,
 								},
 							},
 						},
@@ -148,7 +109,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 							Name: "api-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.CloudGuardAPITLSSecretName,
+									SecretName: common.ClusterGuardAPITLSSecretName,
 								},
 							},
 						},
@@ -156,7 +117,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 							Name: "api-ca-cert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.CloudGuardAPICASecretName,
+									SecretName: common.ClusterGuardAPICASecretName,
 								},
 							},
 						},
@@ -187,7 +148,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.CloudGuardConfigMapName,
+											Name: common.ClusterGuardConfigMapName,
 										},
 									},
 								},
@@ -201,7 +162,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionStartupProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWebhookPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -212,7 +173,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionLivenessProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWebhookPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -243,7 +204,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: common.CloudGuardWebhookPort,
+									ContainerPort: common.ClusterGuardWebhookPort,
 									Name:          "webhook-port",
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -272,7 +233,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.CloudGuardConfigMapName,
+											Name: common.ClusterGuardConfigMapName,
 										},
 									},
 								},
@@ -286,7 +247,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWebhookPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -297,7 +258,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWebhookPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -329,12 +290,12 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: common.CloudGuardWatcherHTTPPort,
+									ContainerPort: common.ClusterGuardWatcherHTTPPort,
 									Name:          "watcher-health",
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
-									ContainerPort: common.CloudGuardGRPCPort,
+									ContainerPort: common.ClusterGuardGRPCPort,
 									Name:          "grpc-port",
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -364,7 +325,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.CloudGuardConfigMapName,
+											Name: common.ClusterGuardConfigMapName,
 										},
 									},
 								},
@@ -380,7 +341,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWatcherHTTPPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -391,7 +352,7 @@ func cloudGuardDeployment(name, namespace, imageUri string, imagePullPolicy core
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(common.CloudGuardWatcherHTTPPort),
+										Port:   intstr.FromInt32(common.ClusterGuardWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},

@@ -36,7 +36,7 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 	}
 
 	existingCM := &corev1.ConfigMap{}
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
 
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, cm)
@@ -121,7 +121,7 @@ func (r *FalconAdmissionReconciler) newClusterNameConfigMap(ctx context.Context,
 
 func (r *FalconAdmissionReconciler) removeClusterNameConfigMapData(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
 	existingCM := &corev1.ConfigMap{}
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconAdmissionClusterNameConfigMapName, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconAdmissionClusterNameConfigMapName, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
 	if err != nil {
 		return false, nil
 	}

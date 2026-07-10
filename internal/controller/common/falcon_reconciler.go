@@ -28,7 +28,7 @@ func InjectFalconSecretData[T FalconReconciler[T], U FalconCRD](
 		Namespace: falconSecret.Namespace,
 	}
 
-	if err := common.GetNamespacedObject(ctx, reconciler.GetK8sClient(), reconciler.GetK8sReader(), secretNamespacedName, secret); err != nil {
+	if err := common.GetWithFallback(ctx, reconciler.GetK8sClient(), reconciler.GetK8sReader(), secretNamespacedName, secret); err != nil {
 		return err
 	}
 

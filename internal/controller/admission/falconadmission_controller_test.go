@@ -306,7 +306,7 @@ var _ = Describe("FalconAdmission controller", func() {
 			By("Checking if Deployment was created with updated config map")
 			Eventually(func() error {
 				admissionConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
+				err = common.GetWithFallback(
 					ctx,
 					falconAdmissionReconciler.Client,
 					falconAdmissionReconciler.Reader,

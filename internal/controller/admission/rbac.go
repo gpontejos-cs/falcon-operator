@@ -44,7 +44,7 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 		falconAdmission.Spec.AdmissionConfig.ServiceAccount.Annotations,
 		imagePullSecrets)
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: falconAdmission.Spec.InstallNamespace}, existingServiceAccount)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: falconAdmission.Spec.InstallNamespace}, existingServiceAccount)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, serviceAccount)
 		if err != nil {
@@ -132,7 +132,7 @@ func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Cont
 		[]rbacv1.Subject{})
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: admissionClusterRoleBindingName}, existingClusterRoleBinding)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: admissionClusterRoleBindingName}, existingClusterRoleBinding)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, clusterRoleBinding)
 		if err != nil {
@@ -172,7 +172,7 @@ func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.
 	role := assets.Role(admissionControllerRoleName, falconAdmission.Spec.InstallNamespace)
 	existingRole := &rbacv1.Role{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: admissionControllerRoleName, Namespace: falconAdmission.Spec.InstallNamespace}, existingRole)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: admissionControllerRoleName, Namespace: falconAdmission.Spec.InstallNamespace}, existingRole)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, role)
 		if err != nil {

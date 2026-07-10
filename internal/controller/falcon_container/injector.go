@@ -30,7 +30,7 @@ const (
 func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Secret, error) {
 	existingInjectorTLSSecret := &corev1.Secret{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorTLSSecretName, Namespace: falconContainer.Spec.InstallNamespace}, existingInjectorTLSSecret)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorTLSSecretName, Namespace: falconContainer.Spec.InstallNamespace}, existingInjectorTLSSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			validity := 3650
@@ -91,7 +91,7 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 		}
 	}
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingDeployment)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, deployment, r.Scheme); err != nil {

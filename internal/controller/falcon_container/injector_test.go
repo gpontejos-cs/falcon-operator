@@ -132,7 +132,7 @@ func TestReconcileInjectorTLSSecretLogic(t *testing.T) {
 		assert.Equal(t, 1000, validity)
 	})
 
-	t.Run("should handle errors from GetNamespacedObject", func(t *testing.T) {
+	t.Run("should handle errors from GetWithFallback", func(t *testing.T) {
 		falconContainer := &falconv1alpha1.FalconContainer{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-falcon-container",

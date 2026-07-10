@@ -1,9 +1,9 @@
 apiVersion: falcon.crowdstrike.com/v1alpha1
-kind: FalconCloudGuard
+kind: FalconClusterGuard
 metadata:
   labels:
     app.kubernetes.io/name: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falconcloudguard-sample
+  name: falconclusterguard-sample
 spec:
   # TODO(user): Add fields here

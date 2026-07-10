@@ -9,9 +9,12 @@ import (
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
+	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+// NamespaceReconciler is the minimal interface required to reconcile a namespace.
+type NamespaceReconciler interface {
+	client.Client
+	GetK8sReader() client.Reader
+	GetScheme() *runtime.Scheme
+	GetLog() logr.Logger
+}
 
 var ErrNoWebhookServicePodReady = errors.New("no webhook service pod found in a Ready state")
 
@@ -340,4 +351,19 @@ func IsInitPodCrashLooping(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+// ReconcileNamespace ensures the given namespace exists, creating it if necessary.
+func ReconcileNamespace(ctx context.Context, r NamespaceReconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, namespace string) error {
+	ns := assets.Namespace(namespace)
+	existing := &corev1.Namespace{}
+	if err := pkgcommon.GetWithFallback(ctx, r, r.GetK8sReader(), types.NamespacedName{Name: namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return Create(r, r.GetScheme(), ctx, req, r.GetLog(), owner, status, ns)
+		}
+		ownerKind := owner.GetObjectKind().GroupVersionKind().Kind
+		r.GetLog().Error(err, "Failed to get Namespace", "owner", owner.GetName(), "ownerKind", ownerKind, "namespace", namespace)
+		return err
+	}
+	return nil
 }

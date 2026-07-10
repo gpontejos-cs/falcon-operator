@@ -107,7 +107,7 @@ func (r *FalconContainerReconciler) reconcileAITapSecret(ctx context.Context, lo
 	secret := assets.Secret(secretName, namespace, common.FalconSidecarSensor, secretData, corev1.SecretTypeOpaque)
 	existingSecret := &corev1.Secret{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: secretName, Namespace: namespace}, existingSecret)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: secretName, Namespace: namespace}, existingSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err := ctrl.SetControllerReference(falconContainer, secret, r.Scheme); err != nil {

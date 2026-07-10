@@ -74,7 +74,7 @@ func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pu
 	secret := assets.Secret(common.FalconPullSecretName, namespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err := ctrl.SetControllerReference(falconContainer, secret, r.Scheme); err != nil {

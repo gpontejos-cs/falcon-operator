@@ -287,7 +287,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		}
 	}
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, dep)
 		if err != nil {
@@ -415,7 +415,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileRegistrySecret(ctx context.Cont
 	secret := assets.Secret(common.FalconPullSecretName, falconImageAnalyzer.Spec.InstallNamespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingSecret)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingSecret)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, secret)
 		if err != nil {
@@ -444,7 +444,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageStream(ctx context.Context
 	imageStream := assets.ImageStream(imageStreamName, namespace, common.FalconImageAnalyzer)
 	existingImageStream := &imagev1.ImageStream{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: imageStreamName, Namespace: namespace}, existingImageStream)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: imageStreamName, Namespace: namespace}, existingImageStream)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, imageStream)
 		if err != nil {
@@ -473,7 +473,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileNamespace(ctx context.Context, 
 	namespace.ObjectMeta.Labels = common.CRLabels("namespace", falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer)
 	existingNamespace := &corev1.Namespace{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Spec.InstallNamespace}, existingNamespace)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Spec.InstallNamespace}, existingNamespace)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, namespace)
 		if err != nil {
@@ -492,7 +492,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileNamespace(ctx context.Context, 
 func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
 	existingDeployment := &appsv1.Deployment{}
 	configVersion := "falcon.config.version"
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
 	if err != nil && apierrors.IsNotFound(err) {
 		return err
 	} else if err != nil {
@@ -550,7 +550,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Con
 	)
 
 	existingService := &corev1.Service{}
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconImageAnalyzerAgentService, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingService)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconImageAnalyzerAgentService, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingService)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, service)
 		if err != nil {
@@ -601,7 +601,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARTLSSecret(ctx context.Contex
 	existingTLSSecret := &corev1.Secret{}
 	name := falconImageAnalyzer.Name + "-tls"
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingTLSSecret)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingTLSSecret)
 
 	if err != nil && apierrors.IsNotFound(err) {
 		validity := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.CertExpiration

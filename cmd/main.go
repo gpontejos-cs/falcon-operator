@@ -45,7 +45,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
-	cloudguardcontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_cloudguard"
+	clusterguardcontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_clusterguard"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	falcondeployment "github.com/crowdstrike/falcon-operator/internal/controller/falcon_deployment"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
@@ -68,7 +68,7 @@ var (
 		&falconv1alpha1.FalconNodeSensor{}:   {},
 		&falconv1alpha1.FalconContainer{}:    {},
 		&falconv1alpha1.FalconDeployment{}:   {},
-		&falconv1alpha1.FalconCloudGuard{}:   {},
+		&falconv1alpha1.FalconClusterGuard{}: {},
 		&schedulingv1.PriorityClass{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 		},
@@ -327,12 +327,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconDeployment")
 		os.Exit(1)
 	}
-	if err = (&cloudguardcontroller.FalconCloudGuardReconciler{
-		Client: mgr.GetClient(),
-		Reader: mgr.GetAPIReader(),
-		Scheme: mgr.GetScheme(),
+	if err = (&clusterguardcontroller.FalconClusterGuardReconciler{
+		Client:        mgr.GetClient(),
+		Reader:        mgr.GetAPIReader(),
+		RuntimeScheme: mgr.GetScheme(),
+		OpenShift:     openShift,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "FalconCloudGuard")
+		setupLog.Error(err, "unable to create controller", "controller", "FalconClusterGuard")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

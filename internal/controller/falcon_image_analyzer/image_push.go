@@ -103,7 +103,7 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 	switch falconImageAnalyzer.Spec.Registry.Type {
 	case falconv1alpha1.RegistryTypeOpenshift:
 		imageStream := &imagev1.ImageStream{}
-		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: "falcon-image-analyzer", Namespace: r.imageNamespace(falconImageAnalyzer)}, imageStream)
+		err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: "falcon-image-analyzer", Namespace: r.imageNamespace(falconImageAnalyzer)}, imageStream)
 		if err != nil {
 			return "", err
 		}

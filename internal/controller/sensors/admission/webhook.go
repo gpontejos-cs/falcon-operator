@@ -1,51 +1,21 @@
-package controllers
+package admission
 
 import (
-	"context"
-	"reflect"
-
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconCloudGuardReconciler) reconcileValidatingWebhook(ctx context.Context, req ctrl.Request, log logr.Logger, fcg *falconv1alpha1.FalconCloudGuard, caBundle []byte) error {
-	webhook := cloudGuardValidatingWebhook(fcg.Spec.InstallNamespace, caBundle, fcg.Spec.CloudGuardConfig.DisabledNamespaces)
-	existing := &arv1.ValidatingWebhookConfiguration{}
-
-	err := r.Get(ctx, types.NamespacedName{Name: common.CloudGuardValidatingWebhookName}, existing)
-	if err != nil && apierrors.IsNotFound(err) {
-		return k8sutils.Create(r.Client, r.Scheme, ctx, req, log, fcg, &fcg.Status, webhook)
-	} else if err != nil {
-		log.Error(err, "Failed to get FalconCloudGuard ValidatingWebhookConfiguration")
-		return err
-	}
-
-	if !reflect.DeepEqual(webhook.Webhooks, existing.Webhooks) {
-		existing.Webhooks = webhook.Webhooks
-		existing.SetGroupVersionKind(arv1.SchemeGroupVersion.WithKind("ValidatingWebhookConfiguration"))
-		return k8sutils.Update(r.Client, ctx, req, log, fcg, &fcg.Status, existing)
-	}
-
-	return nil
-}
-
-// cloudGuardValidatingWebhook builds the ValidatingWebhookConfiguration for FalconCloudGuard
+// ClusterGuardValidatingWebhook builds the ValidatingWebhookConfiguration for FalconClusterGuard
 // with three webhooks: pod admission, workload admission, and a test webhook.
-func cloudGuardValidatingWebhook(namespace string, caBundle []byte, extraDisabledNamespaces []string) *arv1.ValidatingWebhookConfiguration {
+func ClusterGuardValidatingWebhook(namespace string, caBundle []byte, extraDisabledNamespaces []string) *arv1.ValidatingWebhookConfiguration {
 	failurePolicy := arv1.Ignore
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone
 	timeoutSeconds := int32(10)
 	excludeOp := metav1.LabelSelectorOpNotIn
 	scope := arv1.AllScopes
-	webhookName := common.CloudGuardValidatingWebhookName
+	webhookName := common.ClusterGuardValidatingWebhookName
 	path := "/validate"
 	port := int32(443)
 
@@ -94,9 +64,9 @@ func cloudGuardValidatingWebhook(namespace string, caBundle []byte, extraDisable
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
 			Labels: map[string]string{
-				"app":                         common.CloudGuardDeploymentName,
-				common.KubernetesNameKey:      common.CloudGuardDeploymentName,
-				common.KubernetesComponentKey: common.CloudGuardComponentName,
+				"app":                         common.ClusterGuardDeploymentName,
+				common.KubernetesNameKey:      common.ClusterGuardDeploymentName,
+				common.KubernetesComponentKey: common.ClusterGuardComponentName,
 				common.FalconProviderKey:      common.FalconProviderValue,
 			},
 		},
@@ -111,7 +81,7 @@ func cloudGuardValidatingWebhook(namespace string, caBundle []byte, extraDisable
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.CloudGuardWebhookServiceName,
+						Name:      common.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -140,7 +110,7 @@ func cloudGuardValidatingWebhook(namespace string, caBundle []byte, extraDisable
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.CloudGuardWebhookServiceName,
+						Name:      common.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -187,7 +157,7 @@ func cloudGuardValidatingWebhook(namespace string, caBundle []byte, extraDisable
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.CloudGuardWebhookServiceName,
+						Name:      common.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,

@@ -326,7 +326,7 @@ func (r *FalconAdmissionReconciler) reconcileResourceQuota(ctx context.Context, 
 
 	rq := assets.ResourceQuota(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, defaultPodLimit)
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingRQ)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingRQ)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, rq)
 		if err != nil {
@@ -355,7 +355,7 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 	existingTLSSecret := &corev1.Secret{}
 	name := falconAdmission.Name + "-tls"
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingTLSSecret)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingTLSSecret)
 
 	if err != nil && apierrors.IsNotFound(err) {
 		validity := 3650
@@ -424,7 +424,7 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 		port,
 	)
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingService)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingService)
 
 	switch {
 	case err == nil && !falconAdmission.GetAdmissionControlEnabled():
@@ -491,7 +491,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	webhook := assets.ValidatingWebhook(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionValidatingWebhookName, cabundle, port, failPolicy, disabledNamespaces)
 	updated := false
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconAdmissionValidatingWebhookName}, existingWebhook)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconAdmissionValidatingWebhookName}, existingWebhook)
 	switch {
 	case err == nil && !falconAdmission.GetAdmissionControlEnabled():
 		err = k8sutils.Delete(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
@@ -557,7 +557,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 	}
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, dep)
 		if err != nil {
@@ -581,7 +581,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Re-fetch the latest version of the deployment to avoid conflicts
-		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
+		err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
 		if err != nil {
 			return err
 		}
@@ -775,7 +775,7 @@ func (r *FalconAdmissionReconciler) reconcileRegistrySecret(ctx context.Context,
 	secret := assets.Secret(common.FalconPullSecretName, falconAdmission.Spec.InstallNamespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: falconAdmission.Spec.InstallNamespace}, existingSecret)
+	err = common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: falconAdmission.Spec.InstallNamespace}, existingSecret)
 
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, secret)
@@ -806,7 +806,7 @@ func (r *FalconAdmissionReconciler) reconcileImageStream(ctx context.Context, re
 	imageStream := assets.ImageStream(imageStreamName, namespace, common.FalconAdmissionController)
 	existingImageStream := &imagev1.ImageStream{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: imageStreamName, Namespace: namespace}, existingImageStream)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: imageStreamName, Namespace: namespace}, existingImageStream)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, imageStream)
 		if err != nil {
@@ -836,7 +836,7 @@ func (r *FalconAdmissionReconciler) reconcileNamespace(ctx context.Context, req 
 	namespace.ObjectMeta.Labels = common.CRLabels("namespace", falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController)
 	existingNamespace := &corev1.Namespace{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Spec.InstallNamespace}, existingNamespace)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Spec.InstallNamespace}, existingNamespace)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, namespace)
 		if err != nil {
@@ -855,7 +855,7 @@ func (r *FalconAdmissionReconciler) reconcileNamespace(ctx context.Context, req 
 func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
 	existingDeployment := &appsv1.Deployment{}
 	configVersion := "falcon.config.version"
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
 	if err != nil && apierrors.IsNotFound(err) {
 		return err
 	} else if err != nil {

@@ -219,7 +219,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 )
 
-var _ = Describe("FalconCloudGuard Controller", func() {
+var _ = Describe("FalconClusterGuard Controller", func() {
 	Context("When reconciling a resource", func() {
 		const (
 			resourceName      = "test-resource"
@@ -232,13 +232,13 @@ var _ = Describe("FalconCloudGuard Controller", func() {
 			Name:      resourceName,
 			Namespace: resourceNamespace,
 		}
-		falconcloudguard := &falconv1alpha1.FalconCloudGuard{}
+		falconclusterguard := &falconv1alpha1.FalconClusterGuard{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind FalconCloudGuard")
-			err := k8sClient.Get(ctx, typeNamespacedName, falconcloudguard)
+			By("creating the custom resource for the Kind FalconClusterGuard")
+			err := k8sClient.Get(ctx, typeNamespacedName, falconclusterguard)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &falconv1alpha1.FalconCloudGuard{
+				resource := &falconv1alpha1.FalconClusterGuard{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: resourceNamespace,
@@ -251,18 +251,18 @@ var _ = Describe("FalconCloudGuard Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &falconv1alpha1.FalconCloudGuard{}
+			resource := &falconv1alpha1.FalconClusterGuard{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance FalconCloudGuard")
+			By("Cleanup the specific resource instance FalconClusterGuard")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &FalconCloudGuardReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+			controllerReconciler := &FalconClusterGuardReconciler{
+				Client:        k8sClient,
+				RuntimeScheme: k8sClient.Scheme(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

@@ -26,7 +26,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 	serviceAccount := r.newServiceAccount(falconContainer)
 	existingServiceAccount := &corev1.ServiceAccount{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.SidecarServiceAccountName, Namespace: falconContainer.Spec.InstallNamespace}, existingServiceAccount)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.SidecarServiceAccountName, Namespace: falconContainer.Spec.InstallNamespace}, existingServiceAccount)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, serviceAccount, r.Scheme); err != nil {
@@ -88,7 +88,7 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 	clusterRoleBinding := r.newClusterRoleBinding(falconContainer)
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
+	err := common.GetWithFallback(ctx, r.Client, r.Reader, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, clusterRoleBinding, r.Scheme); err != nil {

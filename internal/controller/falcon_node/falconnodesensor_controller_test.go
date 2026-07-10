@@ -197,7 +197,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			By("Checking if Deployment was created with updated config map")
 			Eventually(func() error {
 				nodeSensorConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
+				err = common.GetWithFallback(
 					ctx,
 					falconNodeReconciler.Client,
 					falconNodeReconciler.Reader,
@@ -321,7 +321,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			By("Checking if Deployment was created with updated config map")
 			Eventually(func() error {
 				nodeSensorConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
+				err = common.GetWithFallback(
 					ctx,
 					falconNodeSensorReconciler.Client,
 					falconNodeSensorReconciler.Reader,

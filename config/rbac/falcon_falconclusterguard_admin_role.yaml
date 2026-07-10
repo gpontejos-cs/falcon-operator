@@ -11,17 +11,17 @@ metadata:
   labels:
     app.kubernetes.io/name: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falcon-falconcloudguard-admin-role
+  name: falcon-falconclusterguard-admin-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconcloudguards
+  - falconclusterguards
   verbs:
   - '*'
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconcloudguards/status
+  - falconclusterguards/status
   verbs:
   - get
