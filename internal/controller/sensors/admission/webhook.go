@@ -6,9 +6,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ClusterGuardValidatingWebhook builds the ValidatingWebhookConfiguration for FalconClusterGuard
+// ValidatingWebhook builds the ValidatingWebhookConfiguration for FalconClusterGuard
 // with three webhooks: pod admission, workload admission, and a test webhook.
-func ClusterGuardValidatingWebhook(namespace string, caBundle []byte, extraDisabledNamespaces []string) *arv1.ValidatingWebhookConfiguration {
+func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookConfiguration {
+	namespace := a.cfg.InstallNamespace
+	extraDisabledNamespaces := a.cfg.AdmissionConfig.DisabledNamespaces.Namespaces
 	failurePolicy := arv1.Ignore
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone

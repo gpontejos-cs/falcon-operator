@@ -7,16 +7,16 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-// ClusterGuardSensorServiceAccount builds the ServiceAccount for the node sensor.
-func ClusterGuardSensorServiceAccount(namespace string) *corev1.ServiceAccount {
-	return assets.ServiceAccount(common.ClusterGuardSensorServiceAccountName, namespace, common.ClusterGuardComponentName, nil, nil)
+// serviceAccount builds the ServiceAccount for the node sensor.
+func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
+	return assets.ServiceAccount(common.ClusterGuardSensorServiceAccountName, n.cfg.InstallNamespace, common.ClusterGuardComponentName, nil, nil)
 }
 
-// ClusterGuardSensorClusterRoleBinding builds the ClusterRoleBinding for the node sensor.
-func ClusterGuardSensorClusterRoleBinding(namespace string) *rbacv1.ClusterRoleBinding {
+// clusterRoleBinding builds the ClusterRoleBinding for the node sensor.
+func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
 		common.ClusterGuardSensorClusterRoleBindingName,
-		namespace,
+		n.cfg.InstallNamespace,
 		common.ClusterGuardSensorClusterRoleName,
 		common.ClusterGuardSensorServiceAccountName,
 		common.ClusterGuardComponentName,
@@ -24,7 +24,7 @@ func ClusterGuardSensorClusterRoleBinding(namespace string) *rbacv1.ClusterRoleB
 	)
 }
 
-// ClusterGuardSensorCleanupServiceAccount builds the ServiceAccount for the node sensor cleanup DaemonSet.
-func ClusterGuardSensorCleanupServiceAccount(namespace string) *corev1.ServiceAccount {
-	return assets.ServiceAccount(common.ClusterGuardSensorCleanupServiceAccountName, namespace, common.ClusterGuardComponentName, nil, nil)
+// cleanupServiceAccount builds the ServiceAccount for the node sensor cleanup DaemonSet.
+func (n *NodeSensor) cleanupServiceAccount() *corev1.ServiceAccount {
+	return assets.ServiceAccount(common.ClusterGuardSensorCleanupServiceAccountName, n.cfg.InstallNamespace, common.ClusterGuardComponentName, nil, nil)
 }

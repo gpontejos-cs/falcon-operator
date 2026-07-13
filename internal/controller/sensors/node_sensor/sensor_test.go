@@ -15,7 +15,8 @@ func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
 		Image:            "quay.io/crowdstrike/falcon-sensor:latest",
 	}
 
-	ds := sensor.ClusterGuardSensorDaemonSet(cfg)
+	n := sensor.New(nil, cfg)
+	ds := n.DaemonSet()
 
 	if ds == nil {
 		t.Fatal("expected non-nil DaemonSet")
@@ -41,7 +42,8 @@ func TestClusterGuardSensorDaemonSetDefaultTerminationGracePeriod(t *testing.T) 
 		// NodeSensor.TerminationGracePeriod is 0 (zero value) -> should default to 60
 	}
 
-	ds := sensor.ClusterGuardSensorDaemonSet(cfg)
+	n := sensor.New(nil, cfg)
+	ds := n.DaemonSet()
 
 	if ds.Spec.Template.Spec.TerminationGracePeriodSeconds == nil {
 		t.Fatal("expected non-nil TerminationGracePeriodSeconds")
@@ -52,12 +54,15 @@ func TestClusterGuardSensorDaemonSetDefaultTerminationGracePeriod(t *testing.T) 
 }
 
 func TestClusterGuardSensorCleanupDaemonSetReturnsDS(t *testing.T) {
-	namespace := "falcon-clusterguard"
-	imageUri := "quay.io/crowdstrike/falcon-sensor:latest"
-	imagePullPolicy := corev1.PullIfNotPresent
-	imagePullSecrets := []corev1.LocalObjectReference{{Name: "mysecret"}}
+	cfg := sensor.Config{
+		InstallNamespace: "falcon-clusterguard",
+		Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		ImagePullPolicy:  corev1.PullIfNotPresent,
+		ImagePullSecrets: []corev1.LocalObjectReference{{Name: "mysecret"}},
+	}
 
-	ds := sensor.ClusterGuardSensorCleanupDaemonSet(namespace, imageUri, imagePullPolicy, imagePullSecrets)
+	n := sensor.New(nil, cfg)
+	ds := n.CleanupDaemonSet()
 
 	if ds == nil {
 		t.Fatal("expected non-nil DaemonSet")
@@ -65,8 +70,8 @@ func TestClusterGuardSensorCleanupDaemonSetReturnsDS(t *testing.T) {
 	if ds.Name != common.ClusterGuardSensorCleanupDaemonSetName {
 		t.Errorf("expected name %q, got %q", common.ClusterGuardSensorCleanupDaemonSetName, ds.Name)
 	}
-	if ds.Namespace != namespace {
-		t.Errorf("expected namespace %q, got %q", namespace, ds.Namespace)
+	if ds.Namespace != cfg.InstallNamespace {
+		t.Errorf("expected namespace %q, got %q", cfg.InstallNamespace, ds.Namespace)
 	}
 	if len(ds.Spec.Template.Spec.InitContainers) != 1 {
 		t.Errorf("expected 1 init container, got %d", len(ds.Spec.Template.Spec.InitContainers))

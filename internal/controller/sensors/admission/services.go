@@ -6,14 +6,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// ClusterGuardWebhookService builds the Service that exposes the admission webhook.
-func ClusterGuardWebhookService(namespace string) *corev1.Service {
+// webhookService builds the Service that exposes the admission webhook.
+func (a *Admission) webhookService() *corev1.Service {
 	selector := map[string]string{"app": common.ClusterGuardDeploymentName}
 	labels := map[string]string{"app": common.ClusterGuardDeploymentName}
 
 	return assets.ServiceWithCustomLabels(
 		common.ClusterGuardWebhookServiceName,
-		namespace,
+		a.cfg.InstallNamespace,
 		selector,
 		labels,
 		common.FalconServiceHTTPSName,
@@ -22,14 +22,14 @@ func ClusterGuardWebhookService(namespace string) *corev1.Service {
 	)
 }
 
-// ClusterGuardAPIService builds the Service that exposes the gRPC API.
-func ClusterGuardAPIService(namespace string) *corev1.Service {
+// apiService builds the Service that exposes the gRPC API.
+func (a *Admission) apiService() *corev1.Service {
 	selector := map[string]string{"app": common.ClusterGuardDeploymentName}
 	labels := map[string]string{"app": common.ClusterGuardDeploymentName}
 
 	return assets.ServiceWithCustomLabels(
 		common.ClusterGuardAPIServiceName,
-		namespace,
+		a.cfg.InstallNamespace,
 		selector,
 		labels,
 		"grpc",

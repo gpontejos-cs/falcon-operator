@@ -11,9 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ClusterGuardDeployment builds the Deployment for FalconClusterGuard with 3 containers:
+// Deployment builds the Deployment for FalconClusterGuard with 3 containers:
 // falcon-ac (admission controller), falcon-client (webhook), and falcon-watcher (event watcher + gRPC API).
-func ClusterGuardDeployment(name, namespace, imageUri string, imagePullPolicy corev1.PullPolicy, imagePullSecrets []corev1.LocalObjectReference) *appsv1.Deployment {
+func (a *Admission) Deployment() *appsv1.Deployment {
+	name := common.ClusterGuardDeploymentName
+	namespace := a.cfg.InstallNamespace
+	imageUri := a.cfg.Image
+	imagePullPolicy := a.cfg.ImagePullPolicy
+	imagePullSecrets := a.cfg.ImagePullSecrets
 	runNonRoot := true
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false

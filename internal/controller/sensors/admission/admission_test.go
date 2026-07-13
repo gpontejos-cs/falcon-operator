@@ -3,6 +3,7 @@ package admission_test
 import (
 	"testing"
 
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/sensors/admission"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +16,13 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	imagePullPolicy := corev1.PullIfNotPresent
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: "mysecret"}}
 
-	dep := admission.ClusterGuardDeployment(name, namespace, imageUri, imagePullPolicy, imagePullSecrets)
+	a := admission.New(nil, admission.Config{
+		InstallNamespace: namespace,
+		Image:            imageUri,
+		ImagePullPolicy:  imagePullPolicy,
+		ImagePullSecrets: imagePullSecrets,
+	})
+	dep := a.Deployment()
 
 	if dep == nil {
 		t.Fatal("expected non-nil Deployment")
@@ -39,7 +46,15 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	caBundle := []byte("fake-ca")
 	extraDisabledNamespaces := []string{"kube-system"}
 
-	webhook := admission.ClusterGuardValidatingWebhook(namespace, caBundle, extraDisabledNamespaces)
+	a := admission.New(nil, admission.Config{
+		InstallNamespace: namespace,
+		AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+			DisabledNamespaces: falconv1alpha1.FalconAdmissionNamespace{
+				Namespaces: extraDisabledNamespaces,
+			},
+		},
+	})
+	webhook := a.ValidatingWebhook(caBundle)
 
 	if webhook == nil {
 		t.Fatal("expected non-nil ValidatingWebhookConfiguration")
@@ -58,7 +73,15 @@ func TestClusterGuardValidatingWebhookDeduplicatesNamespaces(t *testing.T) {
 	// Pass a duplicate of a default disabled namespace
 	extraDisabledNamespaces := []string{namespace, namespace}
 
-	webhook := admission.ClusterGuardValidatingWebhook(namespace, caBundle, extraDisabledNamespaces)
+	a := admission.New(nil, admission.Config{
+		InstallNamespace: namespace,
+		AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+			DisabledNamespaces: falconv1alpha1.FalconAdmissionNamespace{
+				Namespaces: extraDisabledNamespaces,
+			},
+		},
+	})
+	webhook := a.ValidatingWebhook(caBundle)
 
 	if webhook == nil {
 		t.Fatal("expected non-nil ValidatingWebhookConfiguration")

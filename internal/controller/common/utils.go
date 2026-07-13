@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// NamespaceReconciler is the minimal interface required to reconcile a namespace.
-type NamespaceReconciler interface {
+// Reconciler is the minimal interface required for common controller operations.
+type Reconciler interface {
 	client.Client
 	GetK8sReader() client.Reader
 	GetScheme() *runtime.Scheme
@@ -353,8 +353,21 @@ func IsInitPodCrashLooping(pod *corev1.Pod) bool {
 	return false
 }
 
+// GetOrCreate fetches an existing resource into existing. If not found, creates desired and returns (false, nil).
+// Returns (true, nil) when the resource already exists. On other errors returns (false, err).
+func GetOrCreate(ctx context.Context, r Reconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, desired, existing client.Object, key types.NamespacedName, errMsg string) (bool, error) {
+	if err := pkgcommon.GetWithFallback(ctx, r, r.GetK8sReader(), key, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, Create(r, r.GetScheme(), ctx, req, r.GetLog(), owner, status, desired)
+		}
+		r.GetLog().Error(err, errMsg)
+		return false, err
+	}
+	return true, nil
+}
+
 // ReconcileNamespace ensures the given namespace exists, creating it if necessary.
-func ReconcileNamespace(ctx context.Context, r NamespaceReconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, namespace string) error {
+func ReconcileNamespace(ctx context.Context, r Reconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, namespace string) error {
 	ns := assets.Namespace(namespace)
 	existing := &corev1.Namespace{}
 	if err := pkgcommon.GetWithFallback(ctx, r, r.GetK8sReader(), types.NamespacedName{Name: namespace}, existing); err != nil {

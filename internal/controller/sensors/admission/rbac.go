@@ -7,16 +7,16 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-// ClusterGuardServiceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
-func ClusterGuardServiceAccount(namespace string) *corev1.ServiceAccount {
-	return assets.ServiceAccount(common.ClusterGuardServiceAccountName, namespace, common.ClusterGuardComponentName, nil, nil)
+// serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
+func (a *Admission) serviceAccount() *corev1.ServiceAccount {
+	return assets.ServiceAccount(common.ClusterGuardServiceAccountName, a.cfg.InstallNamespace, common.ClusterGuardComponentName, nil, nil)
 }
 
-// ClusterGuardClusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
-func ClusterGuardClusterRoleBinding(namespace string) *rbacv1.ClusterRoleBinding {
+// clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
+func (a *Admission) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
 		common.ClusterGuardClusterRoleBindingName,
-		namespace,
+		a.cfg.InstallNamespace,
 		common.ClusterGuardClusterRoleName,
 		common.ClusterGuardServiceAccountName,
 		common.ClusterGuardComponentName,
@@ -24,7 +24,7 @@ func ClusterGuardClusterRoleBinding(namespace string) *rbacv1.ClusterRoleBinding
 	)
 }
 
-// ClusterGuardRoleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
-func ClusterGuardRoleBinding(namespace string) *rbacv1.RoleBinding {
-	return assets.RoleBinding(common.ClusterGuardRoleBindingName, namespace, common.ClusterGuardRoleName, common.ClusterGuardServiceAccountName)
+// roleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
+func (a *Admission) roleBinding() *rbacv1.RoleBinding {
+	return assets.RoleBinding(common.ClusterGuardRoleBindingName, a.cfg.InstallNamespace, common.ClusterGuardRoleName, common.ClusterGuardServiceAccountName)
 }

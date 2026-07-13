@@ -10,22 +10,33 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 )
 
-// ClusterGuardSensorDaemonSet builds the DaemonSet for the FalconClusterGuard node sensor.
-func ClusterGuardSensorDaemonSet(cfg Config) *appsv1.DaemonSet {
-	namespace := cfg.InstallNamespace
-	nodeSpec := cfg.NodeSensor
+// DaemonSet builds the DaemonSet for the FalconClusterGuard node sensor.
+func (n *NodeSensor) DaemonSet() *appsv1.DaemonSet {
+	return n.daemonSet()
+}
+
+// CleanupDaemonSet builds the cleanup DaemonSet that removes
+// /opt/CrowdStrike from each node during FalconClusterGuard finalization.
+func (n *NodeSensor) CleanupDaemonSet() *appsv1.DaemonSet {
+	return n.cleanupDaemonSet()
+}
+
+// daemonSet builds the DaemonSet for the FalconClusterGuard node sensor.
+func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
+	namespace := n.cfg.InstallNamespace
+	nodeSpec := n.cfg.NodeSensor
 
 	dsLabels := common.CRLabels("daemonset", common.ClusterGuardSensorDaemonSetName, common.ClusterGuardComponentName)
 	privileged := true
 	runAsUser := int64(0)
 	hostPathType := corev1.HostPathFile
 
-	imageUri := cfg.Image
-	if imageUri == "" && cfg.FalconAPI != nil && cfg.FalconAPI.CID != nil {
-		imageUri = *cfg.FalconAPI.CID
+	imageUri := n.cfg.Image
+	if imageUri == "" && n.cfg.FalconAPI != nil && n.cfg.FalconAPI.CID != nil {
+		imageUri = *n.cfg.FalconAPI.CID
 	}
 
-	imagePullPolicy := cfg.ImagePullPolicy
+	imagePullPolicy := n.cfg.ImagePullPolicy
 	if imagePullPolicy == "" {
 		imagePullPolicy = corev1.PullIfNotPresent
 	}
@@ -90,7 +101,7 @@ fi`,
 		DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 		HostPID:                       true,
 		HostIPC:                       true,
-		ImagePullSecrets:              cfg.ImagePullSecrets,
+		ImagePullSecrets:              n.cfg.ImagePullSecrets,
 		NodeSelector: map[string]string{
 			"kubernetes.io/os": "linux",
 		},
@@ -183,9 +194,14 @@ fi`,
 	}
 }
 
-// ClusterGuardSensorCleanupDaemonSet builds the cleanup DaemonSet that removes
+// cleanupDaemonSet builds the cleanup DaemonSet that removes
 // /opt/CrowdStrike from each node during FalconClusterGuard finalization.
-func ClusterGuardSensorCleanupDaemonSet(namespace string, imageUri string, imagePullPolicy corev1.PullPolicy, imagePullSecrets []corev1.LocalObjectReference) *appsv1.DaemonSet {
+func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
+	namespace := n.cfg.InstallNamespace
+	imageUri := n.cfg.Image
+	imagePullPolicy := n.cfg.ImagePullPolicy
+	imagePullSecrets := n.cfg.ImagePullSecrets
+
 	dsLabels := common.CRLabels("daemonset", common.ClusterGuardSensorCleanupDaemonSetName, common.ClusterGuardComponentName)
 
 	if imagePullPolicy == "" {

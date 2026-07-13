@@ -21,22 +21,28 @@ type Resolver interface {
 
 // Config holds the spec fields needed to resolve the sensor image URI.
 type Config struct {
-	Image               string
-	FalconAPI           *falconv1alpha1.FalconAPI
-	FalconSecret        falconv1alpha1.FalconSecret
-	Version             *string
-	RelatedImageEnvVar  string
+	Image              string
+	FalconAPI          *falconv1alpha1.FalconAPI
+	FalconSecret       falconv1alpha1.FalconSecret
+	Version            *string
+	RelatedImageEnvVar string
 }
 
-// URI resolves the full image URI for the sensor image.
+// URI resolves the full image URI for the sensor image and updates status.Sensor.
 func URI(ctx context.Context, r Resolver, cfg Config, status *falconv1alpha1.FalconCRStatus, obj client.Object) (string, error) {
 	if cfg.Image != "" {
+		if _, err := SetTag(ctx, r, cfg, status, obj); err != nil {
+			return "", err
+		}
 		return cfg.Image, nil
 	}
 
-	clusterGuardImage := os.Getenv(cfg.RelatedImageEnvVar)
-	if clusterGuardImage != "" && (cfg.FalconAPI == nil || !cfg.FalconSecret.Enabled) {
-		return clusterGuardImage, nil
+	relatedImage := os.Getenv(cfg.RelatedImageEnvVar)
+	if relatedImage != "" {
+		if _, err := SetTag(ctx, r, cfg, status, obj); err != nil {
+			return "", err
+		}
+		return relatedImage, nil
 	}
 
 	imageTag, err := SetTag(ctx, r, cfg, status, obj)
@@ -61,18 +67,20 @@ func URI(ctx context.Context, r Resolver, cfg Config, status *falconv1alpha1.Fal
 
 // SetTag resolves and stores the sensor image tag in status, returning the tag.
 func SetTag(ctx context.Context, r Resolver, cfg Config, status *falconv1alpha1.FalconCRStatus, obj client.Object) (string, error) {
+	// If version locking is enabled and a version is already set in status, return the current version
 	if versionLock(cfg, status) {
 		if tag, err := getTag(status); err == nil {
 			return tag, err
 		}
 	}
 
+	// If an Image URI is set, use it for our version
 	if cfg.Image != "" {
 		status.Sensor = common.ImageVersion(cfg.Image)
 		return *status.Sensor, r.Status().Update(ctx, obj)
 	}
 
-	if os.Getenv(cfg.RelatedImageEnvVar) != "" && (cfg.FalconAPI == nil || !cfg.FalconSecret.Enabled) {
+	if os.Getenv(cfg.RelatedImageEnvVar) != "" {
 		img := os.Getenv(cfg.RelatedImageEnvVar)
 		status.Sensor = common.ImageVersion(img)
 		return *status.Sensor, r.Status().Update(ctx, obj)

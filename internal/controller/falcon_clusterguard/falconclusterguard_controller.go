@@ -12,7 +12,9 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/sensors/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/sensors/node_sensor"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	falcon_api "github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/version"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -35,6 +37,9 @@ type FalconClusterGuardReconciler struct {
 	RuntimeScheme *runtime.Scheme
 	OpenShift     bool
 	log           logr.Logger
+	apiConfig     *falcon.ApiConfig
+	cid           string
+	cloud         string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -117,14 +122,6 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	// Inject sensitive values from a k8s Secret before any reconciliation that uses them
-	if falconClusterGuard.Spec.FalconSecret.Enabled {
-		if err := r.injectFalconSecretData(ctx, falconClusterGuard); err != nil {
-			r.log.Error(err, "Failed to inject FalconSecret data")
-			return ctrl.Result{}, err
-		}
-	}
-
 	if falconClusterGuard.Status.Version != version.Get() {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			if err := common.GetWithFallback(ctx, r.Client, r.Reader, req.NamespacedName, falconClusterGuard); err != nil {
@@ -139,6 +136,39 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
+	// Inject sensitive values from a k8s Secret before any reconciliation that uses them
+	if falconClusterGuard.Spec.FalconSecret.Enabled {
+		if err := r.injectFalconSecretData(ctx, falconClusterGuard); err != nil {
+			r.log.Error(err, "Failed to inject FalconSecret data")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if r.apiConfig == nil && falconClusterGuard.Spec.FalconAPI != nil {
+		apiConfig, err := falconClusterGuard.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconClusterGuard.Spec.FalconSecret)
+		if err != nil {
+			r.log.Error(err, "Failed to build Falcon API config")
+			return ctrl.Result{}, err
+		}
+		r.apiConfig = apiConfig
+	}
+
+	if r.cid == "" {
+		// CID priority: Falcon.CID (sensor spec) → FalconAPI.CID (API spec) → fetch via API credentials
+		var cidOverride *string
+		if falconClusterGuard.Spec.Falcon.CID != nil {
+			cidOverride = falconClusterGuard.Spec.Falcon.CID
+		} else if falconClusterGuard.Spec.FalconAPI != nil {
+			cidOverride = falconClusterGuard.Spec.FalconAPI.CID
+		}
+		cid, err := falcon_api.FalconCID(ctx, cidOverride, r.apiConfig)
+		if err != nil {
+			r.log.Error(err, "Failed to resolve Falcon CID")
+			return ctrl.Result{}, err
+		}
+		r.cid = cid
+	}
+
 	imgCfg := image.Config{
 		Image:              falconClusterGuard.Spec.Image,
 		FalconAPI:          falconClusterGuard.Spec.FalconAPI,
@@ -148,17 +178,15 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	// Image being set will override other image-based settings.
+	// When a related image is set (e.g. by OLM in disconnected OpenShift environments), it takes
+	// precedence over registry discovery. To pin a specific version, set Spec.Image explicitly.
 	var imageURI string
-	if falconClusterGuard.Spec.Image != "" {
-		if _, err := image.SetTag(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard); err != nil {
+	if falconClusterGuard.Spec.Image != "" || os.Getenv(imgCfg.RelatedImageEnvVar) != "" {
+		var err error
+		imageURI, err = image.URI(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard)
+		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Cloud Guard Image version: %v", err)
 		}
-		imageURI = falconClusterGuard.Spec.Image
-	} else if os.Getenv(imgCfg.RelatedImageEnvVar) != "" && (falconClusterGuard.Spec.FalconAPI == nil || !falconClusterGuard.Spec.FalconSecret.Enabled) {
-		if _, err := image.SetTag(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Cloud Guard Image version: %v", err)
-		}
-		imageURI = os.Getenv(imgCfg.RelatedImageEnvVar)
 	} else {
 		if !meta.IsStatusConditionPresentAndEqual(falconClusterGuard.Status.Conditions, falconv1alpha1.ConditionImageReady, metav1.ConditionTrue) {
 			uri, err := image.URI(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard)
@@ -191,29 +219,44 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	if err := admission.Reconcile(ctx, r, admission.Config{
-		Request:          req,
-		Owner:            falconClusterGuard,
-		Status:           &falconClusterGuard.Status,
-		InstallNamespace: falconClusterGuard.Spec.InstallNamespace,
-		Image:            imageURI,
-		ImagePullPolicy:  falconClusterGuard.Spec.ImagePullPolicy,
-		ImagePullSecrets: falconClusterGuard.Spec.ImagePullSecrets,
-		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig,
-	}); err != nil {
-		return ctrl.Result{}, err
+	// Create/update the CrowdStrike registry pull secret when the resolved image references
+	// a CrowdStrike-owned registry and we have API credentials to obtain a token.
+	imagePullSecrets := falconClusterGuard.Spec.ImagePullSecrets
+	if r.apiConfig != nil && isCrowdStrikeRegistry(imageURI) {
+		if err := r.reconcileImagePullSecret(ctx, req, falconClusterGuard); err != nil {
+			return ctrl.Result{}, err
+		}
+		csSecret := corev1.LocalObjectReference{Name: common.FalconPullSecretName}
+		if len(imagePullSecrets) == 0 || imagePullSecrets[0].Name != csSecret.Name {
+			imagePullSecrets = append([]corev1.LocalObjectReference{csSecret}, imagePullSecrets...)
+		}
 	}
 
-	return node_sensor.Reconcile(ctx, r, node_sensor.Config{
+	if result, err := admission.New(r, admission.Config{
 		Request:          req,
 		Owner:            falconClusterGuard,
 		Status:           &falconClusterGuard.Status,
 		InstallNamespace: falconClusterGuard.Spec.InstallNamespace,
 		Image:            imageURI,
 		ImagePullPolicy:  falconClusterGuard.Spec.ImagePullPolicy,
-		ImagePullSecrets: falconClusterGuard.Spec.ImagePullSecrets,
+		ImagePullSecrets: imagePullSecrets,
+		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig,
+		Cid:              r.cid,
+	}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
+		return result, err
+	}
+
+	return node_sensor.New(r, node_sensor.Config{
+		Request:          req,
+		Owner:            falconClusterGuard,
+		Status:           &falconClusterGuard.Status,
+		InstallNamespace: falconClusterGuard.Spec.InstallNamespace,
+		Image:            imageURI,
+		ImagePullPolicy:  falconClusterGuard.Spec.ImagePullPolicy,
+		ImagePullSecrets: imagePullSecrets,
 		Falcon:           falconClusterGuard.Spec.Falcon,
 		FalconAPI:        falconClusterGuard.Spec.FalconAPI,
 		NodeSensor:       falconClusterGuard.Spec.NodeSensor,
-	})
+		Cid:              r.cid,
+	}).Reconcile(ctx)
 }
