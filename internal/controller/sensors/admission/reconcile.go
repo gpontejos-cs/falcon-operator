@@ -93,7 +93,7 @@ func (a *Admission) Reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	if configUpdated || webhookServiceUpdated || apiServiceUpdated || webhookUpdated {
 		pod, err := k8sutils.GetReadyPod(a.r.GetK8sReader(), ctx, a.cfg.InstallNamespace,
-			client.MatchingLabels{"app": pkgcommon.ClusterGuardDeploymentName})
+			client.MatchingLabels{"app": pkgcommon.AdmissionDeploymentName})
 		if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 			log.Error(err, "Failed to find Ready FalconClusterGuard pod")
 			return ctrl.Result{}, err
@@ -118,7 +118,7 @@ func (a *Admission) reconcileDeployment(ctx context.Context) error {
 
 	existing := &appsv1.Deployment{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, dep, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardDeploymentName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard Deployment")
 	if !found || err != nil {
 		return err
@@ -126,7 +126,7 @@ func (a *Admission) reconcileDeployment(ctx context.Context) error {
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
-			types.NamespacedName{Name: pkgcommon.ClusterGuardDeploymentName, Namespace: a.cfg.InstallNamespace},
+			types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
 			existing); err != nil {
 			return err
 		}
@@ -309,7 +309,7 @@ func (a *Admission) triggerRollingDeployment(ctx context.Context) error {
 	const configVersionAnnotation = "falcon.config.version"
 	existing := &appsv1.Deployment{}
 	if err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
-		types.NamespacedName{Name: pkgcommon.ClusterGuardDeploymentName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
 		existing); err != nil {
 		a.r.GetLog().Error(err, "Failed to get FalconClusterGuard Deployment for rolling restart")
 		return err

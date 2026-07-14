@@ -14,7 +14,7 @@ import (
 // Deployment builds the Deployment for FalconClusterGuard with 3 containers:
 // falcon-ac (admission controller), falcon-client (webhook), and falcon-watcher (event watcher + gRPC API).
 func (a *Admission) Deployment() *appsv1.Deployment {
-	name := common.ClusterGuardDeploymentName
+	name := common.AdmissionDeploymentName
 	namespace := a.cfg.InstallNamespace
 	imageUri := a.cfg.Image
 	imagePullPolicy := a.cfg.ImagePullPolicy
@@ -35,7 +35,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 		"app": name,
 	}
 
-	apiServiceName := fmt.Sprintf("%s.%s.svc", common.ClusterGuardAPIServiceName, namespace)
+	apiServiceName := fmt.Sprintf("%s.%s.svc", common.AdmissionAPIServiceName, namespace)
 
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -69,7 +69,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					ShareProcessNamespace:         &shareProcessNamespace,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            common.ClusterGuardServiceAccountName,
+					ServiceAccountName:            common.AdmissionModuleServiceAccountName,
 					PriorityClassName:             common.FalconPriorityClassName,
 					ImagePullSecrets:              imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
@@ -106,7 +106,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							Name: name + "-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.ClusterGuardTLSSecretName,
+									SecretName: common.AdmissionTLSSecretName,
 								},
 							},
 						},
@@ -114,7 +114,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							Name: "api-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.ClusterGuardAPITLSSecretName,
+									SecretName: common.AdmissionAPITLSSecretName,
 								},
 							},
 						},
@@ -122,7 +122,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							Name: "api-ca-cert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: common.ClusterGuardAPICASecretName,
+									SecretName: common.AdmissionAPICASecretName,
 								},
 							},
 						},
@@ -153,7 +153,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.ClusterGuardConfigMapName,
+											Name: common.AdmissionConfigMapName,
 										},
 									},
 								},
@@ -167,7 +167,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionStartupProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
+										Port:   intstr.FromInt32(common.AdmissionWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -178,7 +178,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionLivenessProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
+										Port:   intstr.FromInt32(common.AdmissionWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -209,7 +209,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: common.ClusterGuardWebhookPort,
+									ContainerPort: common.AdmissionWebhookPort,
 									Name:          "webhook-port",
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -238,7 +238,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.ClusterGuardConfigMapName,
+											Name: common.AdmissionConfigMapName,
 										},
 									},
 								},
@@ -252,7 +252,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
+										Port:   intstr.FromInt32(common.AdmissionWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -263,7 +263,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWebhookPort),
+										Port:   intstr.FromInt32(common.AdmissionWebhookPort),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -295,12 +295,12 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: common.ClusterGuardWatcherHTTPPort,
+									ContainerPort: common.AdmissionWatcherHTTPPort,
 									Name:          "watcher-health",
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
-									ContainerPort: common.ClusterGuardGRPCPort,
+									ContainerPort: common.AdmissionGRPCPort,
 									Name:          "grpc-port",
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -330,7 +330,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: common.ClusterGuardConfigMapName,
+											Name: common.AdmissionConfigMapName,
 										},
 									},
 								},
@@ -346,7 +346,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWatcherHTTPPort),
+										Port:   intstr.FromInt32(common.AdmissionWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -357,7 +357,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(common.ClusterGuardWatcherHTTPPort),
+										Port:   intstr.FromInt32(common.AdmissionWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},

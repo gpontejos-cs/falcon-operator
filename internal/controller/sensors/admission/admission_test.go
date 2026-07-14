@@ -10,7 +10,7 @@ import (
 )
 
 func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
-	name := common.ClusterGuardDeploymentName
+	name := common.AdmissionDeploymentName
 	namespace := "falcon-clusterguard"
 	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
 	imagePullPolicy := corev1.PullIfNotPresent
@@ -59,8 +59,8 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	if webhook == nil {
 		t.Fatal("expected non-nil ValidatingWebhookConfiguration")
 	}
-	if webhook.Name != common.ClusterGuardValidatingWebhookName {
-		t.Errorf("expected name %q, got %q", common.ClusterGuardValidatingWebhookName, webhook.Name)
+	if webhook.Name != common.AdmissionValidatingWebhookName {
+		t.Errorf("expected name %q, got %q", common.AdmissionValidatingWebhookName, webhook.Name)
 	}
 	if len(webhook.Webhooks) != 3 {
 		t.Errorf("expected 3 webhooks, got %d", len(webhook.Webhooks))

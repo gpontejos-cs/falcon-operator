@@ -15,24 +15,24 @@ import (
 
 // serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
 func (a *Admission) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, a.cfg.AdmissionConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
+	return assets.ServiceAccount(pkgcommon.AdmissionModuleServiceAccountName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, a.cfg.AdmissionConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
 func (a *Admission) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
-		pkgcommon.ClusterGuardClusterRoleBindingName,
+		pkgcommon.AdmissionClusterRoleBindingName,
 		a.cfg.InstallNamespace,
 		pkgcommon.AdmissionClusterRoleName,
-		pkgcommon.ClusterGuardServiceAccountName,
-		pkgcommon.ClusterGuardComponentName,
+		pkgcommon.AdmissionModuleServiceAccountName,
+		pkgcommon.AdmissionComponentName,
 		[]rbacv1.Subject{},
 	)
 }
 
 // roleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
 func (a *Admission) roleBinding() *rbacv1.RoleBinding {
-	return assets.RoleBinding(pkgcommon.ClusterGuardRoleBindingName, a.cfg.InstallNamespace, pkgcommon.AdmissionNamespaceRoleName, pkgcommon.ClusterGuardServiceAccountName)
+	return assets.RoleBinding(pkgcommon.AdmissionRoleBindingName, a.cfg.InstallNamespace, pkgcommon.AdmissionNamespaceRoleName, pkgcommon.AdmissionModuleServiceAccountName)
 }
 
 // role builds the Role for the FalconClusterGuard admission controller.
@@ -45,7 +45,7 @@ func (a *Admission) reconcileServiceAccount(ctx context.Context) error {
 	sa := a.serviceAccount()
 	existing := &corev1.ServiceAccount{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, sa, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardServiceAccountName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionModuleServiceAccountName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard ServiceAccount")
 	if !found || err != nil {
 		return err
@@ -96,7 +96,7 @@ func (a *Admission) reconcileClusterRoleBinding(ctx context.Context) error {
 	crb := a.clusterRoleBinding()
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, crb, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardClusterRoleBindingName},
+		types.NamespacedName{Name: pkgcommon.AdmissionClusterRoleBindingName},
 		"Failed to get FalconClusterGuard ClusterRoleBinding")
 	if !found || err != nil {
 		return err
@@ -120,7 +120,7 @@ func (a *Admission) reconcileRoleBinding(ctx context.Context) error {
 	rb := a.roleBinding()
 	existing := &rbacv1.RoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, rb, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardRoleBindingName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionRoleBindingName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard RoleBinding")
 	if !found || err != nil {
 		return err

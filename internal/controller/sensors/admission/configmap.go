@@ -22,16 +22,16 @@ func (a *Admission) configMap() *corev1.ConfigMap {
 
 	// Add admission-specific configuration
 	data["FALCON_MODE"] = "kac"
-	data["WEBHOOK_PORT"] = pkgcommon.ClusterGuardWebhookPortStr
-	data["GRPC_PORT"] = pkgcommon.ClusterGuardGRPCPortStr
-	data["WATCHER_HTTP_PORT"] = pkgcommon.ClusterGuardWatcherHTTPPortStr
+	data["WEBHOOK_PORT"] = pkgcommon.AdmissionWebhookPortStr
+	data["GRPC_PORT"] = pkgcommon.AdmissionGRPCPortStr
+	data["WATCHER_HTTP_PORT"] = pkgcommon.AdmissionWatcherHTTPPortStr
 	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(cfg.AdmissionControlEnabled != nil && *cfg.AdmissionControlEnabled)
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(cfg.GetWatcherEnabled())
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(cfg.GetSnapshotsEnabled())
 	data["__CS_SNAPSHOT_INTERVAL"] = cfg.GetSnapshotsInterval().String()
 	data["FALCONCTL_OPT_CID"] = a.cfg.Cid
 
-	return assets.SensorConfigMap(pkgcommon.ClusterGuardConfigMapName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
+	return assets.SensorConfigMap(pkgcommon.AdmissionConfigMapName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.
