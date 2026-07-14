@@ -15,7 +15,7 @@ import (
 
 // serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
 func (a *Admission) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, a.cfg.ImagePullSecrets)
+	return assets.ServiceAccount(pkgcommon.ClusterGuardServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, a.cfg.AdmissionConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.

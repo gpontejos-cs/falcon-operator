@@ -17,15 +17,17 @@ import (
 func (n *NodeSensor) configMap() *corev1.ConfigMap {
 	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardAPIServiceName, n.cfg.InstallNamespace)
 
-	data := map[string]string{
-		"FALCONCTL_OPT_TRACE":              "warn",
-		"FALCONCTL_OPT_BACKEND":            "bpf",
-		"FLOW_ENABLED":                     "false",
-		"FALCON_MODE":                      "daemonset",
-		"__CS_ENABLE_K8S_METADATA_SERVICE": "true",
-		"API_SERVICE_NAME":                 apiServiceName,
-	}
+	// Start with sensor environment variables from the Falcon sensor config
+	data := pkgcommon.MakeSensorEnvMap(n.cfg.Falcon)
 
+	// Add node sensor-specific configuration
+	data["FALCONCTL_OPT_BACKEND"] = "bpf"
+	data["FLOW_ENABLED"] = "false"
+	data["FALCON_MODE"] = "daemonset"
+	data["__CS_ENABLE_K8S_METADATA_SERVICE"] = "true"
+	data["API_SERVICE_NAME"] = apiServiceName
+
+	// CID can be overridden by the controller
 	if n.cfg.Cid != "" {
 		data["FALCONCTL_OPT_CID"] = n.cfg.Cid
 	}

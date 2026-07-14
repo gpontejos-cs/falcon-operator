@@ -14,7 +14,7 @@ import (
 
 // serviceAccount builds the ServiceAccount for the node sensor.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, n.cfg.ImagePullSecrets)
+	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the node sensor.

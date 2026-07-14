@@ -78,23 +78,6 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 
 	containerResources := n.dsResources()
 
-	initArgs := []string{
-		"-c",
-		`set -e;
-if [ ! -f /opt/CrowdStrike/falcon-daemonset-init ]; then
-echo "Error: This is not a falcon node sensor(DaemonSet) image";
-exit 1;
-fi;
-echo "Running /opt/CrowdStrike/falcon-daemonset-init -i";
-/opt/CrowdStrike/falcon-daemonset-init -i;
-if [ ! -f /opt/CrowdStrike/configure-cluster-id ]; then
-echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping.";
-else
-echo "Running /opt/CrowdStrike/configure-cluster-id";
-/opt/CrowdStrike/configure-cluster-id;
-fi`,
-	}
-
 	apiServiceName := pkgcommon.ClusterGuardAPIServiceName + "." + namespace + ".svc"
 
 	podSpec := corev1.PodSpec{
@@ -117,7 +100,7 @@ fi`,
 				Image:           imageUri,
 				ImagePullPolicy: imagePullPolicy,
 				Command:         []string{"/bin/bash"},
-				Args:            initArgs,
+				Args:            pkgcommon.InitContainerArgs(),
 				Resources:       n.initContainerResources(),
 				SecurityContext: &corev1.SecurityContext{
 					RunAsUser:                &runAsUser,
@@ -252,10 +235,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 							Image:           imageUri,
 							ImagePullPolicy: imagePullPolicy,
 							Command:         []string{"/bin/bash"},
-							Args: []string{
-								"-c",
-								`echo "Running /opt/CrowdStrike/falcon-daemonset-init -u"; /opt/CrowdStrike/falcon-daemonset-init -u`,
-							},
+							Args:            pkgcommon.InitCleanupArgs(),
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser:                &runAsUser,
 								Privileged:               &privileged,
@@ -270,7 +250,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 							Image:           imageUri,
 							ImagePullPolicy: imagePullPolicy,
 							Command:         []string{"/bin/bash"},
-							Args:            []string{"-c", "sleep infinity"},
+							Args:            pkgcommon.CleanupSleep(),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &disallowPrivilegeEscalation,
 								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
