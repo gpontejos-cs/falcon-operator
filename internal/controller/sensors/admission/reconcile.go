@@ -34,6 +34,7 @@ type Config struct {
 	AdmissionConfig  falconv1alpha1.FalconAdmissionConfigSpec
 	RegistryTLS      falconv1alpha1.RegistryTLSSpec
 	Cid              string
+	Falcon           falconv1alpha1.FalconSensor
 }
 
 // Admission owns the reconciliation of all admission controller sub-resources.

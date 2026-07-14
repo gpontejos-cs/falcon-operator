@@ -245,6 +245,7 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig,
 		RegistryTLS:      falconClusterGuard.Spec.Registry.TLS,
 		Cid:              r.cid,
+		Falcon:           falconClusterGuard.Spec.Falcon,
 	}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
