@@ -50,7 +50,7 @@ const (
 	FalconSidecarSensor       = "container_sensor"
 	FalconAdmissionController = "admission_controller"
 	FalconImageAnalyzer       = "falcon-imageanalyzer"
-	FalconClusterGuard          = "falcon-clusterguard"
+	FalconClusterGuard        = "falcon-clusterguard"
 	FalconFinalizer           = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue       = "crowdstrike"
 	FalconPartOfValue         = "Falcon"
@@ -65,35 +65,42 @@ const (
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
 
-	ClusterGuardServiceAccountName      = "falcon-clusterguard-sa"
-	ClusterGuardDeploymentName          = "falcon-clusterguard"
-	ClusterGuardConfigMapName           = "falcon-clusterguard-config"
-	ClusterGuardClusterRoleName         = "falcon-clusterguard-resource-reader"
-	ClusterGuardClusterRoleBindingName  = "falcon-clusterguard-security-crb"
-	ClusterGuardRoleName                = "falcon-clusterguard-role"
-	ClusterGuardRoleBindingName         = "falcon-clusterguard-rolebinding"
-	ClusterGuardWebhookServiceName      = "webhook"
-	ClusterGuardAPIServiceName          = "api"
-	ClusterGuardWebhookPort             = int32(4443)
-	ClusterGuardWebhookPortStr          = "4443"
-	ClusterGuardGRPCPort                = int32(50051)
-	ClusterGuardGRPCPortStr             = "50051"
-	ClusterGuardWatcherHTTPPort         = int32(4080)
-	ClusterGuardWatcherHTTPPortStr      = "4080"
-	ClusterGuardTLSSecretName           = "falcon-clusterguard-tls"
-	ClusterGuardAPITLSSecretName        = "falcon-api-tls"
-	ClusterGuardAPICASecretName         = "falcon-api-ca"
-	ClusterGuardSensorTLSSecretName     = "falcon-sensor-tls"
-	ClusterGuardValidatingWebhookName   = "validating.falcon-kac.crowdstrike.com"
-	ClusterGuardComponentName           = "ksp"
+	ClusterGuardServiceAccountName     = "falcon-clusterguard-sa"
+	ClusterGuardDeploymentName         = "falcon-clusterguard"
+	ClusterGuardConfigMapName          = "falcon-clusterguard-config"
+	ClusterGuardClusterRoleName        = "falcon-clusterguard-resource-reader"
+	ClusterGuardClusterRoleBindingName = "falcon-clusterguard-security-crb"
+	ClusterGuardRoleName               = "falcon-clusterguard-role"
+	ClusterGuardRoleBindingName        = "falcon-clusterguard-rolebinding"
+	ClusterGuardWebhookServiceName     = "webhook"
+	ClusterGuardAPIServiceName         = "api"
+	ClusterGuardWebhookPort            = int32(4443)
+	ClusterGuardWebhookPortStr         = "4443"
+	ClusterGuardGRPCPort               = int32(50051)
+	ClusterGuardGRPCPortStr            = "50051"
+	ClusterGuardWatcherHTTPPort        = int32(4080)
+	ClusterGuardWatcherHTTPPortStr     = "4080"
+	ClusterGuardTLSSecretName          = "falcon-clusterguard-tls"
+	ClusterGuardAPITLSSecretName       = "falcon-api-tls"
+	ClusterGuardAPICASecretName        = "falcon-api-ca"
+	ClusterGuardSensorTLSSecretName    = "falcon-sensor-tls"
+	ClusterGuardValidatingWebhookName  = "validating.falcon-kac.crowdstrike.com"
+	ClusterGuardComponentName          = "ksp"
 
-	ClusterGuardSensorServiceAccountName     = "crowdstrike-falcon-sa"
-	ClusterGuardSensorConfigMapName          = "falcon-sensor-config"
-	ClusterGuardSensorClusterRoleBindingName = "falcon-sensor-access-binding"
-	ClusterGuardSensorClusterRoleName        = "falcon-sensor-access-role"
-	ClusterGuardSensorDaemonSetName          = "falcon-sensor"
+	ClusterGuardSensorServiceAccountName        = "crowdstrike-falcon-sa"
+	ClusterGuardSensorConfigMapName             = "falcon-sensor-config"
+	ClusterGuardSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
+	ClusterGuardSensorClusterRoleName           = "falcon-sensor-access-role"
+	ClusterGuardSensorDaemonSetName             = "falcon-sensor"
 	ClusterGuardSensorCleanupServiceAccountName = "crowdstrike-falcon-sa-node-cleanup"
 	ClusterGuardSensorCleanupDaemonSetName      = "falcon-sensor-node-cleanup"
+
+	// ClusterRoles and Roles created by kustomize
+	AdmissionClusterRoleName = "falcon-operator-admission-controller-role"
+	NodeClusterRoleName      = "falcon-operator-node-sensor-role"
+
+	// Admission Sensor Module Vars
+	AdmissionNamespaceRoleName = "falcon-operator-admission-controller-namespace-role"
 
 	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
 	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"

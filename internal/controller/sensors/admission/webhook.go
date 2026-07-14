@@ -1,9 +1,15 @@
 package admission
 
 import (
-	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"context"
+	"reflect"
+
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 )
 
 // ValidatingWebhook builds the ValidatingWebhookConfiguration for FalconClusterGuard
@@ -17,11 +23,11 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 	timeoutSeconds := int32(10)
 	excludeOp := metav1.LabelSelectorOpNotIn
 	scope := arv1.AllScopes
-	webhookName := common.ClusterGuardValidatingWebhookName
+	webhookName := pkgcommon.ClusterGuardValidatingWebhookName
 	path := "/validate"
 	port := int32(443)
 
-	excludedNamespaces := append(common.DefaultDisabledNamespaces,
+	excludedNamespaces := append(pkgcommon.DefaultDisabledNamespaces,
 		namespace,
 		"falcon-system",
 		"falcon-kubernetes-protection",
@@ -66,10 +72,10 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
 			Labels: map[string]string{
-				"app":                         common.ClusterGuardDeploymentName,
-				common.KubernetesNameKey:      common.ClusterGuardDeploymentName,
-				common.KubernetesComponentKey: common.ClusterGuardComponentName,
-				common.FalconProviderKey:      common.FalconProviderValue,
+				"app":                            pkgcommon.ClusterGuardDeploymentName,
+				pkgcommon.KubernetesNameKey:      pkgcommon.ClusterGuardDeploymentName,
+				pkgcommon.KubernetesComponentKey: pkgcommon.ClusterGuardComponentName,
+				pkgcommon.FalconProviderKey:      pkgcommon.FalconProviderValue,
 			},
 		},
 		Webhooks: []arv1.ValidatingWebhook{
@@ -83,7 +89,7 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.ClusterGuardWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -112,7 +118,7 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.ClusterGuardWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -159,7 +165,7 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      common.ClusterGuardWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -184,4 +190,49 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 			},
 		},
 	}
+}
+
+// reconcileValidatingWebhook returns true if the webhook configuration was updated, which requires a pod restart.
+func (a *Admission) reconcileValidatingWebhook(ctx context.Context, caBundle []byte) (bool, error) {
+	webhook := a.ValidatingWebhook(caBundle)
+	existing := &arv1.ValidatingWebhookConfiguration{}
+	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, webhook, existing,
+		types.NamespacedName{Name: pkgcommon.ClusterGuardValidatingWebhookName},
+		"Failed to get FalconClusterGuard ValidatingWebhookConfiguration")
+	if !found || err != nil {
+		return false, err
+	}
+
+	needsUpdate := len(webhook.Webhooks) != len(existing.Webhooks)
+	if !needsUpdate && len(webhook.Webhooks) > 0 {
+		if !reflect.DeepEqual(webhook.Webhooks[0].FailurePolicy, existing.Webhooks[0].FailurePolicy) {
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard ValidatingWebhookConfiguration: FailurePolicy changed",
+				"old", existing.Webhooks[0].FailurePolicy,
+				"new", webhook.Webhooks[0].FailurePolicy)
+			needsUpdate = true
+		}
+		if !reflect.DeepEqual(webhook.Webhooks[0].ClientConfig, existing.Webhooks[0].ClientConfig) {
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard ValidatingWebhookConfiguration: ClientConfig changed")
+			needsUpdate = true
+		}
+		if !reflect.DeepEqual(webhook.Webhooks[0].NamespaceSelector, existing.Webhooks[0].NamespaceSelector) {
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard ValidatingWebhookConfiguration: NamespaceSelector changed")
+			needsUpdate = true
+		}
+	}
+
+	if needsUpdate {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
+				types.NamespacedName{Name: pkgcommon.ClusterGuardValidatingWebhookName},
+				existing); err != nil {
+				return err
+			}
+			existing.Webhooks = webhook.Webhooks
+			existing.SetGroupVersionKind(arv1.SchemeGroupVersion.WithKind("ValidatingWebhookConfiguration"))
+			return k8sutils.Update(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, existing)
+		})
+		return err == nil, err
+	}
+	return false, nil
 }

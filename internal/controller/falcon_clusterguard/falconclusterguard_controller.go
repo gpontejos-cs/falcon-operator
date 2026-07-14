@@ -91,7 +91,9 @@ func (r *FalconClusterGuardReconciler) GetLog() logr.Logger {
 //+kubebuilder:rbac:groups="apps",resources=daemonsets,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups="coordination.k8s.io",resources=leases,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -241,6 +243,7 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		ImagePullPolicy:  falconClusterGuard.Spec.ImagePullPolicy,
 		ImagePullSecrets: imagePullSecrets,
 		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig,
+		RegistryTLS:      falconClusterGuard.Spec.Registry.TLS,
 		Cid:              r.cid,
 	}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 		return result, err

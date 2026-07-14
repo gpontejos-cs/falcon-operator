@@ -1,39 +1,101 @@
 package admission
 
 import (
+	"context"
+	"reflect"
+
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
-	"github.com/crowdstrike/falcon-operator/pkg/common"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 )
 
 // webhookService builds the Service that exposes the admission webhook.
 func (a *Admission) webhookService() *corev1.Service {
-	selector := map[string]string{"app": common.ClusterGuardDeploymentName}
-	labels := map[string]string{"app": common.ClusterGuardDeploymentName}
+	selector := map[string]string{"app": pkgcommon.ClusterGuardDeploymentName}
+	labels := map[string]string{"app": pkgcommon.ClusterGuardDeploymentName}
 
 	return assets.ServiceWithCustomLabels(
-		common.ClusterGuardWebhookServiceName,
+		pkgcommon.ClusterGuardWebhookServiceName,
 		a.cfg.InstallNamespace,
 		selector,
 		labels,
-		common.FalconServiceHTTPSName,
+		pkgcommon.FalconServiceHTTPSName,
 		"webhook-port",
-		common.FalconServiceHTTPSPort,
+		pkgcommon.FalconServiceHTTPSPort,
 	)
 }
 
 // apiService builds the Service that exposes the gRPC API.
 func (a *Admission) apiService() *corev1.Service {
-	selector := map[string]string{"app": common.ClusterGuardDeploymentName}
-	labels := map[string]string{"app": common.ClusterGuardDeploymentName}
+	selector := map[string]string{"app": pkgcommon.ClusterGuardDeploymentName}
+	labels := map[string]string{"app": pkgcommon.ClusterGuardDeploymentName}
 
 	return assets.ServiceWithCustomLabels(
-		common.ClusterGuardAPIServiceName,
+		pkgcommon.ClusterGuardAPIServiceName,
 		a.cfg.InstallNamespace,
 		selector,
 		labels,
 		"grpc",
 		"grpc-port",
-		common.FalconServiceHTTPSPort,
+		pkgcommon.FalconServiceHTTPSPort,
 	)
+}
+
+// reconcileWebhookService returns true if the service was updated, which requires a pod restart.
+func (a *Admission) reconcileWebhookService(ctx context.Context) (bool, error) {
+	svc := a.webhookService()
+	existing := &corev1.Service{}
+	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, svc, existing,
+		types.NamespacedName{Name: pkgcommon.ClusterGuardWebhookServiceName, Namespace: a.cfg.InstallNamespace},
+		"Failed to get FalconClusterGuard webhook Service")
+	if !found || err != nil {
+		return false, err
+	}
+	if !reflect.DeepEqual(svc.Spec.Ports, existing.Spec.Ports) || !reflect.DeepEqual(svc.Spec.Selector, existing.Spec.Selector) {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
+				types.NamespacedName{Name: pkgcommon.ClusterGuardWebhookServiceName, Namespace: a.cfg.InstallNamespace},
+				existing); err != nil {
+				return err
+			}
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard Service: ports or selector changed", "service", pkgcommon.ClusterGuardWebhookServiceName)
+			existing.Spec.Ports = svc.Spec.Ports
+			existing.Spec.Selector = svc.Spec.Selector
+			existing.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
+			return k8sutils.Update(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, existing)
+		})
+		return err == nil, err
+	}
+	return false, nil
+}
+
+// reconcileAPIService returns true if the service was updated, which requires a pod restart.
+func (a *Admission) reconcileAPIService(ctx context.Context) (bool, error) {
+	svc := a.apiService()
+	existing := &corev1.Service{}
+	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, svc, existing,
+		types.NamespacedName{Name: pkgcommon.ClusterGuardAPIServiceName, Namespace: a.cfg.InstallNamespace},
+		"Failed to get FalconClusterGuard API Service")
+	if !found || err != nil {
+		return false, err
+	}
+	if !reflect.DeepEqual(svc.Spec.Ports, existing.Spec.Ports) || !reflect.DeepEqual(svc.Spec.Selector, existing.Spec.Selector) {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
+				types.NamespacedName{Name: pkgcommon.ClusterGuardAPIServiceName, Namespace: a.cfg.InstallNamespace},
+				existing); err != nil {
+				return err
+			}
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard Service: ports or selector changed", "service", pkgcommon.ClusterGuardAPIServiceName)
+			existing.Spec.Ports = svc.Spec.Ports
+			existing.Spec.Selector = svc.Spec.Selector
+			existing.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
+			return k8sutils.Update(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, existing)
+		})
+		return err == nil, err
+	}
+	return false, nil
 }

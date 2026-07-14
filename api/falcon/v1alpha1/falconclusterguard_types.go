@@ -12,6 +12,30 @@ const (
 	ClusterGuardSnapshotIntervalDefault        = 22
 )
 
+// FalconClusterGuardRegistryType specifies the type of registry used for Cloud Guard images
+type FalconClusterGuardRegistryType string
+
+const (
+	// RegistryTypeFalconClusterGuardCrowdStrike uses the CrowdStrike registry (default)
+	RegistryTypeFalconClusterGuardCrowdStrike FalconClusterGuardRegistryType = "crowdstrike"
+	// RegistryTypeFalconClusterGuardPrivate uses a private registry configured via ImagePullSecrets or cloud-specific settings
+	RegistryTypeFalconClusterGuardPrivate FalconClusterGuardRegistryType = "private"
+)
+
+// FalconClusterGuardRegistrySpec configures the registry source for Cloud Guard images
+type FalconClusterGuardRegistrySpec struct {
+	// Type specifies whether to use CrowdStrike's registry or a private registry
+	// +kubebuilder:default=crowdstrike
+	// +kubebuilder:validation:Enum=crowdstrike;private
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Type",order=1
+	Type FalconClusterGuardRegistryType `json:"type,omitempty"`
+
+	// TLS configures TLS settings for connecting to the container image registry
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry TLS Configuration",order=2
+	TLS RegistryTLSSpec `json:"tls,omitempty"`
+}
+
 // FalconClusterGuardNodeSpec defines configuration for the node sensor DaemonSet deployed by FalconClusterGuard.
 // It is an alias of FalconNodeSensorConfig and will remain so until FalconNodeSensor is deprecated.
 type FalconClusterGuardNodeSpec = FalconNodeSensorConfig
@@ -52,9 +76,10 @@ type FalconClusterGuardSpec struct {
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// Registry configures the container image registry used for the Cloud Guard image.
+	// +kubebuilder:default={"type":"crowdstrike"}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cloud Guard Registry Configuration",order=3
 	// +optional
-	Registry RegistrySpec `json:"registry,omitempty"`
+	Registry FalconClusterGuardRegistrySpec `json:"registry,omitempty"`
 
 	// Location of the Falcon sensor image. Used for all deployed components. Use only when mirroring the image to a custom repository.
 	// +kubebuilder:validation:Pattern="^.*:.*$"
@@ -86,7 +111,7 @@ type FalconClusterGuardSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Cluster,shortName=fcg
 // +kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version",description="Version of the operator"
 
 // FalconClusterGuard is the Schema for the falconclusterguards API
