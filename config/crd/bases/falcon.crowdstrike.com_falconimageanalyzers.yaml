@@ -637,6 +637,13 @@ spec:
                       type: string
                   type: object
                 type: array
+              useCrowdStrikeRegistry:
+                description: |-
+                  UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                  When set to true, the operator will create the pull secret using FalconAPI credentials.
+                  When set to false, no CrowdStrike pull secret will be created.
+                  When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                type: boolean
               version:
                 description: 'Falcon Image Analyzer Version. The latest version will
                   be selected when version specifier is missing. Example: 6.31, 6.31.0,

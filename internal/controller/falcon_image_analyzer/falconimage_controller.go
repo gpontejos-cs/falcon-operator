@@ -174,6 +174,15 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		if _, err := r.setImageTag(ctx, falconImageAnalyzer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)
 		}
+
+		// If UseCrowdStrikeRegistry flag is explicitly set to true, reconcile the registry secret
+		if falconImageAnalyzer.Spec.UseCrowdStrikeRegistry != nil && *falconImageAnalyzer.Spec.UseCrowdStrikeRegistry {
+			if falconImageAnalyzer.Spec.FalconAPI != nil {
+				if err := r.reconcileRegistrySecret(ctx, req, log, falconImageAnalyzer); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		}
 	} else if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && falconImageAnalyzer.Spec.FalconAPI == nil {
 		if _, err := r.setImageTag(ctx, falconImageAnalyzer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)

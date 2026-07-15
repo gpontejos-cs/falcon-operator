@@ -914,6 +914,13 @@ spec:
                       can be created in the namespace.
                     type: string
                 type: object
+              useCrowdStrikeRegistry:
+                description: |-
+                  UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                  When set to true, the operator will create the pull secret using FalconAPI credentials.
+                  When set to false, no CrowdStrike pull secret will be created.
+                  When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                type: boolean
               version:
                 description: 'Falcon Admission Controller Version. The latest version
                   will be selected when version specifier is missing. Example: 6.31,
@@ -3533,6 +3540,13 @@ spec:
                 required:
                 - type
                 type: object
+              useCrowdStrikeRegistry:
+                description: |-
+                  UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                  When set to true, the operator will create the pull secret using FalconAPI credentials.
+                  When set to false, no CrowdStrike pull secret will be created.
+                  When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                type: boolean
               version:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing; ignored when Image is
@@ -4568,6 +4582,13 @@ spec:
                           that can be created in the namespace.
                         type: string
                     type: object
+                  useCrowdStrikeRegistry:
+                    description: |-
+                      UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                      When set to true, the operator will create the pull secret using FalconAPI credentials.
+                      When set to false, no CrowdStrike pull secret will be created.
+                      When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                    type: boolean
                   version:
                     description: 'Falcon Admission Controller Version. The latest
                       version will be selected when version specifier is missing.
@@ -7082,6 +7103,13 @@ spec:
                     required:
                     - type
                     type: object
+                  useCrowdStrikeRegistry:
+                    description: |-
+                      UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                      When set to true, the operator will create the pull secret using FalconAPI credentials.
+                      When set to false, no CrowdStrike pull secret will be created.
+                      When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                    type: boolean
                   version:
                     description: Falcon Container Version. The latest version will
                       be selected when version specifier is missing; ignored when
@@ -7683,6 +7711,13 @@ spec:
                           type: string
                       type: object
                     type: array
+                  useCrowdStrikeRegistry:
+                    description: |-
+                      UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                      When set to true, the operator will create the pull secret using FalconAPI credentials.
+                      When set to false, no CrowdStrike pull secret will be created.
+                      When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                    type: boolean
                   version:
                     description: 'Falcon Image Analyzer Version. The latest version
                       will be selected when version specifier is missing. Example:
@@ -8313,6 +8348,13 @@ spec:
                             - OnDelete
                             type: string
                         type: object
+                      useCrowdStrikeRegistry:
+                        description: |-
+                          UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                          When set to true, the operator will create the pull secret using FalconAPI credentials.
+                          When set to false, no CrowdStrike pull secret will be created.
+                          When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                        type: boolean
                       version:
                         description: Version of the sensor to be installed. The latest
                           version will be selected when this version specifier is
@@ -8386,6 +8428,14 @@ spec:
                 required:
                 - type
                 type: object
+              useCrowdStrikeRegistry:
+                description: |-
+                  UseCrowdStrikeRegistry globally controls whether to create CrowdStrike registry pull secrets for all deployed components.
+                  When set to true, the operator will create pull secrets using FalconAPI credentials for all components.
+                  When set to false, no CrowdStrike pull secrets will be created for any component.
+                  When not set (nil), each component uses its own heuristic logic or individual useCrowdStrikeRegistry setting.
+                  Individual component settings override this global setting.
+                type: boolean
             type: object
           status:
             description: FalconDeploymentStatus defines the observed state of FalconDeployment
@@ -9097,6 +9147,13 @@ spec:
                       type: string
                   type: object
                 type: array
+              useCrowdStrikeRegistry:
+                description: |-
+                  UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                  When set to true, the operator will create the pull secret using FalconAPI credentials.
+                  When set to false, no CrowdStrike pull secret will be created.
+                  When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                type: boolean
               version:
                 description: 'Falcon Image Analyzer Version. The latest version will
                   be selected when version specifier is missing. Example: 6.31, 6.31.0,
@@ -9840,6 +9897,13 @@ spec:
                         - OnDelete
                         type: string
                     type: object
+                  useCrowdStrikeRegistry:
+                    description: |-
+                      UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                      When set to true, the operator will create the pull secret using FalconAPI credentials.
+                      When set to false, no CrowdStrike pull secret will be created.
+                      When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                    type: boolean
                   version:
                     description: Version of the sensor to be installed. The latest
                       version will be selected when this version specifier is missing.

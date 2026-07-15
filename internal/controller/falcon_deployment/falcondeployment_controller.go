@@ -171,6 +171,12 @@ func (r *FalconDeploymentReconciler) reconcileAdmissionController(ctx context.Co
 		newFalconAdmission.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
 		newFalconAdmission.Spec.Registry = falconDeployment.Spec.Registry
 		newFalconAdmission.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
+
+		// Propagate global UseCrowdStrikeRegistry if not set at component level
+		if falconDeployment.Spec.UseCrowdStrikeRegistry != nil && falconDeployment.Spec.FalconAdmission.UseCrowdStrikeRegistry == nil {
+			newFalconAdmission.Spec.UseCrowdStrikeRegistry = falconDeployment.Spec.UseCrowdStrikeRegistry
+		}
+
 		newFalconAdmission.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-kac",
 			Namespace: falconDeployment.Spec.FalconAdmission.InstallNamespace,
@@ -236,6 +242,12 @@ func (r *FalconDeploymentReconciler) reconcileNodeSensor(ctx context.Context, lo
 		newNodeSensor := &falconv1alpha1.FalconNodeSensor{}
 		newNodeSensor.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
 		newNodeSensor.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
+
+		// Propagate global UseCrowdStrikeRegistry if not set at component level
+		if falconDeployment.Spec.UseCrowdStrikeRegistry != nil && falconDeployment.Spec.FalconNodeSensor.Node.UseCrowdStrikeRegistry == nil {
+			newNodeSensor.Spec.Node.UseCrowdStrikeRegistry = falconDeployment.Spec.UseCrowdStrikeRegistry
+		}
+
 		newNodeSensor.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-node-sensor",
 			Namespace: falconDeployment.Spec.FalconNodeSensor.InstallNamespace,
@@ -302,6 +314,12 @@ func (r *FalconDeploymentReconciler) reconcileImageAnalyzer(ctx context.Context,
 		newImageAnalyzer.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
 		newImageAnalyzer.Spec.Registry = falconDeployment.Spec.Registry
 		newImageAnalyzer.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
+
+		// Propagate global UseCrowdStrikeRegistry if not set at component level
+		if falconDeployment.Spec.UseCrowdStrikeRegistry != nil && falconDeployment.Spec.FalconImageAnalyzer.UseCrowdStrikeRegistry == nil {
+			newImageAnalyzer.Spec.UseCrowdStrikeRegistry = falconDeployment.Spec.UseCrowdStrikeRegistry
+		}
+
 		newImageAnalyzer.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-image-analyzer",
 			Namespace: falconDeployment.Spec.FalconNodeSensor.InstallNamespace,
@@ -367,6 +385,12 @@ func (r *FalconDeploymentReconciler) reconcileContainerSensor(ctx context.Contex
 		newContainerSensor.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
 		newContainerSensor.Spec.Registry = falconDeployment.Spec.Registry
 		newContainerSensor.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
+
+		// Propagate global UseCrowdStrikeRegistry if not set at component level
+		if falconDeployment.Spec.UseCrowdStrikeRegistry != nil && falconDeployment.Spec.FalconContainerSensor.UseCrowdStrikeRegistry == nil {
+			newContainerSensor.Spec.UseCrowdStrikeRegistry = falconDeployment.Spec.UseCrowdStrikeRegistry
+		}
+
 		newContainerSensor.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-container-sensor",
 			Namespace: falconDeployment.Spec.FalconContainerSensor.InstallNamespace,

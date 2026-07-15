@@ -50,6 +50,46 @@ func TestUsingCrowdStrikeRegistry(t *testing.T) {
 
 	// Reset imageOverride
 	config.nodesensor.Spec.Node.Image = ""
+
+	// Test with api config set and image from CrowdStrike registry
+	config.falconApiConfig = &falconApiConfig
+	config.nodesensor.Spec.Node.Image = "registry.crowdstrike.com/falcon-node-sensor:latest"
+	got = config.UsingCrowdStrikeRegistry()
+	want = true
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("UsingCrowdStrikeRegistry() with CrowdStrike registry image mismatch (-want +got): %s", diff)
+	}
+
+	// Reset
+	config.falconApiConfig = nil
+	config.nodesensor.Spec.Node.Image = ""
+
+	// Test with explicit flag set to true
+	useCrowdStrikeRegistryTrue := true
+	config.nodesensor.Spec.Node.UseCrowdStrikeRegistry = &useCrowdStrikeRegistryTrue
+	config.nodesensor.Spec.Node.Image = "myproxy.company.com/my-custom-falcon:v1"
+	config.falconApiConfig = nil
+	got = config.UsingCrowdStrikeRegistry()
+	want = true
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("UsingCrowdStrikeRegistry() with explicit flag=true mismatch (-want +got): %s", diff)
+	}
+
+	// Test with explicit flag set to false
+	useCrowdStrikeRegistryFalse := false
+	config.nodesensor.Spec.Node.UseCrowdStrikeRegistry = &useCrowdStrikeRegistryFalse
+	config.nodesensor.Spec.Node.Image = ""
+	config.falconApiConfig = &falconApiConfig
+	got = config.UsingCrowdStrikeRegistry()
+	want = false
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("UsingCrowdStrikeRegistry() with explicit flag=false mismatch (-want +got): %s", diff)
+	}
+
+	// Reset
+	config.nodesensor.Spec.Node.UseCrowdStrikeRegistry = nil
+	config.falconApiConfig = nil
+	config.nodesensor.Spec.Node.Image = ""
 }
 
 func TestGetImageURI(t *testing.T) {

@@ -76,6 +76,14 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	Image string `json:"image,omitempty"`
 
+	// UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+	// When set to true, the operator will create the pull secret using FalconAPI credentials.
+	// When set to false, no CrowdStrike pull secret will be created.
+	// When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use CrowdStrike Registry",order=2
+	UseCrowdStrikeRegistry *bool `json:"useCrowdStrikeRegistry,omitempty"`
+
 	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`

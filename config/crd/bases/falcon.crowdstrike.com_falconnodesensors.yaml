@@ -664,6 +664,13 @@ spec:
                         - OnDelete
                         type: string
                     type: object
+                  useCrowdStrikeRegistry:
+                    description: |-
+                      UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+                      When set to true, the operator will create the pull secret using FalconAPI credentials.
+                      When set to false, no CrowdStrike pull secret will be created.
+                      When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+                    type: boolean
                   version:
                     description: Version of the sensor to be installed. The latest
                       version will be selected when this version specifier is missing.

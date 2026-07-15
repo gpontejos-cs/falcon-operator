@@ -60,6 +60,14 @@ type FalconContainerSpec struct {
 	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=6
 	Image *string `json:"image,omitempty"`
 
+	// UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+	// When set to true, the operator will create the pull secret using FalconAPI credentials.
+	// When set to false, no CrowdStrike pull secret will be created.
+	// When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use CrowdStrike Registry",order=6
+	UseCrowdStrikeRegistry *bool `json:"useCrowdStrikeRegistry,omitempty"`
+
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=7
 	Version *string `json:"version,omitempty"`

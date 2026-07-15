@@ -385,6 +385,10 @@ func TestDaemonset(t *testing.T) {
 									Name:      "falconstore",
 									MountPath: common.FalconStoreFile,
 								},
+								{
+									Name:      "cs-config",
+									MountPath: common.FalconConfigDir,
+								},
 							},
 							Resources: dsResources(&falconNode),
 						},
@@ -395,6 +399,15 @@ func TestDaemonset(t *testing.T) {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: common.FalconStoreFile,
+									Type: &pathTypeUnset,
+								},
+							},
+						},
+						{
+							Name: "cs-config",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: common.FalconConfigDir,
 									Type: &pathTypeUnset,
 								},
 							},

@@ -571,6 +571,11 @@ func (in *FalconAdmissionSpec) DeepCopyInto(out *FalconAdmissionSpec) {
 	out.ResQuota = in.ResQuota
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.AdmissionConfig.DeepCopyInto(&out.AdmissionConfig)
+	if in.UseCrowdStrikeRegistry != nil {
+		in, out := &in.UseCrowdStrikeRegistry, &out.UseCrowdStrikeRegistry
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
@@ -880,6 +885,11 @@ func (in *FalconContainerSpec) DeepCopyInto(out *FalconContainerSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.UseCrowdStrikeRegistry != nil {
+		in, out := &in.UseCrowdStrikeRegistry, &out.UseCrowdStrikeRegistry
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
@@ -996,6 +1006,11 @@ func (in *FalconDeploymentSpec) DeepCopyInto(out *FalconDeploymentSpec) {
 		in, out := &in.FalconAPI, &out.FalconAPI
 		*out = new(FalconAPI)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.UseCrowdStrikeRegistry != nil {
+		in, out := &in.UseCrowdStrikeRegistry, &out.UseCrowdStrikeRegistry
+		*out = new(bool)
+		**out = **in
 	}
 	in.Registry.DeepCopyInto(&out.Registry)
 	out.FalconSecret = in.FalconSecret
@@ -1256,6 +1271,11 @@ func (in *FalconImageAnalyzerSpec) DeepCopyInto(out *FalconImageAnalyzerSpec) {
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.ImageAnalyzerConfig.DeepCopyInto(&out.ImageAnalyzerConfig)
 	out.FalconSecret = in.FalconSecret
+	if in.UseCrowdStrikeRegistry != nil {
+		in, out := &in.UseCrowdStrikeRegistry, &out.UseCrowdStrikeRegistry
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
@@ -1390,6 +1410,11 @@ func (in *FalconNodeSensorConfig) DeepCopyInto(out *FalconNodeSensorConfig) {
 		}
 	}
 	in.NodeAffinity.DeepCopyInto(&out.NodeAffinity)
+	if in.UseCrowdStrikeRegistry != nil {
+		in, out := &in.UseCrowdStrikeRegistry, &out.UseCrowdStrikeRegistry
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]corev1.LocalObjectReference, len(*in))

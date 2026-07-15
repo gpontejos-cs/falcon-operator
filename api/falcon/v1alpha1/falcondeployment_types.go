@@ -21,6 +21,15 @@ type FalconDeploymentSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// UseCrowdStrikeRegistry globally controls whether to create CrowdStrike registry pull secrets for all deployed components.
+	// When set to true, the operator will create pull secrets using FalconAPI credentials for all components.
+	// When set to false, no CrowdStrike pull secrets will be created for any component.
+	// When not set (nil), each component uses its own heuristic logic or individual useCrowdStrikeRegistry setting.
+	// Individual component settings override this global setting.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use CrowdStrike Registry (Global)",order=1
+	UseCrowdStrikeRegistry *bool `json:"useCrowdStrikeRegistry,omitempty"`
+
 	// Registry configures container image registry to which registry image will be pushed.
 	// +kubebuilder:default:={"type": "crowdstrike"}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Configuration for FalconAdmission, FalconImageanalyzer, and FalconContainer",order=2

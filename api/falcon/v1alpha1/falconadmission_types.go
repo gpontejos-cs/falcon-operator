@@ -75,6 +75,14 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=8
 	Image string `json:"image,omitempty"`
 
+	// UseCrowdStrikeRegistry explicitly controls whether to create a CrowdStrike registry pull secret.
+	// When set to true, the operator will create the pull secret using FalconAPI credentials.
+	// When set to false, no CrowdStrike pull secret will be created.
+	// When not set (nil), the operator uses heuristic logic based on the image location and FalconAPI configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use CrowdStrike Registry",order=8
+	UseCrowdStrikeRegistry *bool `json:"useCrowdStrikeRegistry,omitempty"`
+
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`

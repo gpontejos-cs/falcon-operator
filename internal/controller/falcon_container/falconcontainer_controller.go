@@ -180,6 +180,19 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
 		}
+
+		// If UseCrowdStrikeRegistry flag is explicitly set to true, reconcile the registry secret
+		if falconContainer.Spec.UseCrowdStrikeRegistry != nil && *falconContainer.Spec.UseCrowdStrikeRegistry {
+			if falconContainer.Spec.FalconAPI != nil {
+				if _, err = r.reconcileRegistrySecrets(ctx, log, falconContainer); err != nil {
+					err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+					return ctrl.Result{}, fmt.Errorf("failed to reconcile Falcon registry pull token Secrets: %v", err)
+				}
+			}
+		}
 	} else if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
 		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)

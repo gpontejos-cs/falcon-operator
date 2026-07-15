@@ -179,6 +179,15 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
 		}
+
+		// If UseCrowdStrikeRegistry flag is explicitly set to true, reconcile the registry secret
+		if falconAdmission.Spec.UseCrowdStrikeRegistry != nil && *falconAdmission.Spec.UseCrowdStrikeRegistry {
+			if falconAdmission.Spec.FalconAPI != nil {
+				if err := r.reconcileRegistrySecret(ctx, req, log, falconAdmission); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		}
 	} else if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && falconAdmission.Spec.FalconAPI == nil {
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)

@@ -57,8 +57,17 @@ func (cc *ConfigCache) CID() string {
 }
 
 func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
+	// Explicit flag takes precedence
+	if cc.nodesensor.Spec.Node.UseCrowdStrikeRegistry != nil {
+		return *cc.nodesensor.Spec.Node.UseCrowdStrikeRegistry
+	}
+
+	// Backwards compatible heuristic logic
 	if cc.nodesensor.Spec.Node.Image == "" && cc.falconApiConfig == nil {
 		return os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+	}
+	if cc.falconApiConfig != nil && strings.Contains(cc.nodesensor.Spec.Node.Image, "registry.crowdstrike.com") {
+		return true
 	}
 	return cc.nodesensor.Spec.Node.Image == ""
 }
