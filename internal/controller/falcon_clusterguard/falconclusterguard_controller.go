@@ -9,6 +9,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	commonctrl "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/image"
+	"github.com/crowdstrike/falcon-operator/internal/controller/predicates"
 	"github.com/crowdstrike/falcon-operator/internal/controller/sensors/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/sensors/node_sensor"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -44,18 +46,19 @@ type FalconClusterGuardReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	labelPredicate := predicates.CrowdStrikeLabel()
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&falconv1alpha1.FalconClusterGuard{}).
-		Owns(&corev1.Namespace{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&corev1.Service{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&rbacv1.RoleBinding{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&appsv1.DaemonSet{}).
-		Owns(&arv1.ValidatingWebhookConfiguration{}).
+		For(&falconv1alpha1.FalconClusterGuard{}, builder.WithPredicates(labelPredicate)).
+		Owns(&corev1.Namespace{}, builder.WithPredicates(labelPredicate)).
+		Owns(&corev1.ConfigMap{}, builder.WithPredicates(labelPredicate)).
+		Owns(&corev1.Secret{}, builder.WithPredicates(labelPredicate)).
+		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(labelPredicate)).
+		Owns(&corev1.Service{}, builder.WithPredicates(labelPredicate)).
+		Owns(&rbacv1.ClusterRoleBinding{}, builder.WithPredicates(labelPredicate)).
+		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(labelPredicate)).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(labelPredicate)).
+		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(labelPredicate)).
+		Owns(&arv1.ValidatingWebhookConfiguration{}, builder.WithPredicates(labelPredicate)).
 		Complete(r)
 }
 

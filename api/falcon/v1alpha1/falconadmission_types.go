@@ -79,6 +79,7 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`
 
+	// Deprecated: Use AdmissionConfig.ClusterName instead. This field will be removed in a future release.
 	// Cluster Name if Falcon KAC cannot discover the cluster name. This will be overwritten if Falcon KAC is able to discover the cluster name.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=10
 	ClusterName *string `json:"clusterName,omitempty"`
@@ -210,6 +211,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=20
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// Cluster Name if Falcon KAC cannot discover the cluster name. This will be overwritten if Falcon KAC is able to discover the cluster name.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=21
+	ClusterName *string `json:"clusterName,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {
@@ -377,4 +382,13 @@ func (ac *FalconAdmission) GetFalconSpec() FalconSensor {
 
 func (ac *FalconAdmission) SetFalconSpec(falconSpec FalconSensor) {
 	ac.Spec.Falcon = falconSpec
+}
+
+// GetClusterName returns the cluster name, preferring AdmissionConfig.ClusterName
+// over the deprecated Spec.ClusterName field.
+func (ac *FalconAdmission) GetClusterName() *string {
+	if ac.Spec.AdmissionConfig.ClusterName != nil {
+		return ac.Spec.AdmissionConfig.ClusterName
+	}
+	return ac.Spec.ClusterName
 }

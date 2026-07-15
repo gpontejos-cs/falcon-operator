@@ -108,7 +108,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 }
 
 func (r *FalconAdmissionReconciler) reconcileClusterNameConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
-	if falconAdmission.Spec.ClusterName == nil {
+	if falconAdmission.GetClusterName() == nil {
 		changed, err := r.removeClusterNameConfigMapData(ctx, req, log, falconAdmission)
 		return changed, err
 	}
@@ -116,7 +116,7 @@ func (r *FalconAdmissionReconciler) reconcileClusterNameConfigMap(ctx context.Co
 }
 
 func (r *FalconAdmissionReconciler) newClusterNameConfigMap(ctx context.Context, name string, falconAdmission *falconv1alpha1.FalconAdmission) (*corev1.ConfigMap, error) {
-	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, map[string]string{"ClusterName": *falconAdmission.Spec.ClusterName}), nil
+	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, map[string]string{"ClusterName": *falconAdmission.GetClusterName()}), nil
 }
 
 func (r *FalconAdmissionReconciler) removeClusterNameConfigMapData(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
