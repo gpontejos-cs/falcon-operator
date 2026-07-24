@@ -10,7 +10,8 @@ import (
 )
 
 func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
-	name := common.AdmissionDeploymentName
+	// Default prefix is "falcon-clusterguard" when NamePrefix is empty
+	name := "falcon-clusterguard"
 	namespace := "falcon-clusterguard"
 	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
 	imagePullPolicy := corev1.PullIfNotPresent
@@ -41,6 +42,55 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	}
 }
 
+func TestClusterGuardDeploymentUsesNamePrefix(t *testing.T) {
+	prefix := "my-custom-guard"
+	namespace := "test-ns"
+	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
+
+	a := admission.New(nil, admission.Config{
+		InstallNamespace: namespace,
+		Image:            imageUri,
+		NamePrefix:       prefix,
+	})
+	dep := a.Deployment()
+
+	if dep == nil {
+		t.Fatal("expected non-nil Deployment")
+	}
+	if dep.Name != prefix {
+		t.Errorf("expected deployment name %q, got %q", prefix, dep.Name)
+	}
+	// SA name should be derived from prefix
+	expectedSA := prefix + "-sa"
+	if dep.Spec.Template.Spec.ServiceAccountName != expectedSA {
+		t.Errorf("expected ServiceAccountName %q, got %q", expectedSA, dep.Spec.Template.Spec.ServiceAccountName)
+	}
+	// TLS volume should reference prefix-derived secret
+	expectedTLSSecretName := prefix + "-tls"
+	foundTLS := false
+	for _, v := range dep.Spec.Template.Spec.Volumes {
+		if v.VolumeSource.Secret != nil && v.VolumeSource.Secret.SecretName == expectedTLSSecretName {
+			foundTLS = true
+		}
+	}
+	if !foundTLS {
+		t.Errorf("expected TLS secret name %q in volumes, not found", expectedTLSSecretName)
+	}
+	// ConfigMap reference should use prefix-derived name
+	expectedCM := prefix + "-config"
+	foundCM := false
+	for _, c := range dep.Spec.Template.Spec.Containers {
+		for _, ef := range c.EnvFrom {
+			if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == expectedCM {
+				foundCM = true
+			}
+		}
+	}
+	if !foundCM {
+		t.Errorf("expected ConfigMap name %q in container envFrom, not found", expectedCM)
+	}
+}
+
 func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	namespace := "falcon-clusterguard"
 	caBundle := []byte("fake-ca")
@@ -48,7 +98,7 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 
 	a := admission.New(nil, admission.Config{
 		InstallNamespace: namespace,
-		AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+		AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 			DisabledNamespaces: falconv1alpha1.FalconAdmissionNamespace{
 				Namespaces: extraDisabledNamespaces,
 			},
@@ -75,7 +125,7 @@ func TestClusterGuardValidatingWebhookDeduplicatesNamespaces(t *testing.T) {
 
 	a := admission.New(nil, admission.Config{
 		InstallNamespace: namespace,
-		AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+		AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 			DisabledNamespaces: falconv1alpha1.FalconAdmissionNamespace{
 				Namespaces: extraDisabledNamespaces,
 			},

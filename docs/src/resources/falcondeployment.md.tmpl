@@ -65,7 +65,7 @@ The FalconDeployment Spec contains fields that are shared by all child component
 | falconNodeSensor | (Optional) Additional configurations that map to FalconNodeSensorSpec. All values within the custom resource spec can be overridden here. |
 | falconImageAnalyzer | (Optional) Additional configurations that map to FalconImageAnalyzerSpec. All values within the custom resource spec can be overridden here. |
 | falconContainerSensor | (Optional) Additional configurations that map to FalconContainerSpec. All values within the custom resource spec can be overridden here. |
-| falconAdmission | (Optional) Additional configurations that map to FalconAdmissionConfigSpec. All values within the custom resource spec can be overridden here. |
+| falconAdmission | (Optional) Additional configurations that map to FalconAdmissionBaseConfig. All values within the custom resource spec can be overridden here. |
 
 The additional configurations for each component are mapped to the Spec for each of the custom resource definitions (CRDs). For specific configuration info, see:
 

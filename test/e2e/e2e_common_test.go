@@ -212,6 +212,9 @@ func loadManifest(manifest string, obj any) error {
 	case *falconv1alpha1.FalconDeployment:
 		v.Spec.FalconAPI.ClientId = falconClientID
 		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconClusterGuard:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
 	}
 
 	return nil
@@ -387,6 +390,33 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.falconNodeSensor.falcon.apd", "false", "spec.falconNodeSensor.falcon.apd")
 		validateField(".spec.falconContainerSensor.falcon.trace", "none", "spec.falconContainerSensor.falcon.trace")
 		validateField(".spec.falconContainerSensor.falcon.apd", "false", "spec.falconContainerSensor.falcon.apd")
+
+	case "FalconClusterGuard":
+		validateField(".spec.installNamespace", "falcon-sensor", "spec.installNamespace")
+		validateField(".spec.registry.type", "crowdstrike", "spec.registry.type")
+		validateField(".spec.imagePullPolicy", "IfNotPresent", "spec.imagePullPolicy")
+		// admissionConfig defaults (inherited from FalconAdmissionBaseConfig)
+		validateField(".spec.admissionConfig.servicePort", "443", "spec.admissionConfig.servicePort")
+		validateField(".spec.admissionConfig.containerPort", "4443", "spec.admissionConfig.containerPort")
+		validateField(".spec.admissionConfig.failurePolicy", "Ignore", "spec.admissionConfig.failurePolicy")
+		validateField(".spec.admissionConfig.imagePullPolicy", "Always", "spec.admissionConfig.imagePullPolicy")
+		validateField(".spec.admissionConfig.deployWatcher", "true", "spec.admissionConfig.deployWatcher")
+		validateField(".spec.admissionConfig.watcherEnabled", "true", "spec.admissionConfig.watcherEnabled")
+		validateField(".spec.admissionConfig.snapshotsEnabled", "true", "spec.admissionConfig.snapshotsEnabled")
+		validateField(".spec.admissionConfig.admissionControlEnabled", "true", "spec.admissionConfig.admissionControlEnabled")
+		validateField(".spec.admissionConfig.configMapWatcherEnabled", "true", "spec.admissionConfig.configMapWatcherEnabled")
+		validateField(".spec.admissionConfig.snapshotsInterval", "22h", "spec.admissionConfig.snapshotsInterval")
+		validateField(".spec.admissionConfig.falconImageAnalyzerNamespace", "falcon-iar", "spec.admissionConfig.falconImageAnalyzerNamespace")
+		validateField(".spec.admissionConfig.replicas", "2", "spec.admissionConfig.replicas")
+		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable")
+		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge", "1", "spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge")
+		// nodeSensor defaults (inherited from FalconNodeBaseConfig)
+		validateField(".spec.nodeSensor.backend", "bpf", "spec.nodeSensor.backend")
+		validateField(".spec.nodeSensor.terminationGracePeriod", "60", "spec.nodeSensor.terminationGracePeriod")
+		validateField(".spec.nodeSensor.disableCleanup", "false", "spec.nodeSensor.disableCleanup")
+		validateField(".spec.nodeSensor.updateStrategy.type", "RollingUpdate", "spec.nodeSensor.updateStrategy.type")
+		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/master", "spec.nodeSensor.tolerations[master]")
+		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/control-plane", "spec.nodeSensor.tolerations[control-plane]")
 	}
 
 	// Report all failures at once

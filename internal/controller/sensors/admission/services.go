@@ -14,8 +14,8 @@ import (
 
 // webhookService builds the Service that exposes the admission webhook.
 func (a *Admission) webhookService() *corev1.Service {
-	selector := map[string]string{"app": pkgcommon.AdmissionDeploymentName}
-	labels := map[string]string{"app": pkgcommon.AdmissionDeploymentName}
+	selector := map[string]string{"app": a.prefix()}
+	labels := map[string]string{"app": a.prefix()}
 
 	return assets.ServiceWithCustomLabels(
 		pkgcommon.AdmissionWebhookServiceName,
@@ -30,8 +30,8 @@ func (a *Admission) webhookService() *corev1.Service {
 
 // apiService builds the Service that exposes the gRPC API.
 func (a *Admission) apiService() *corev1.Service {
-	selector := map[string]string{"app": pkgcommon.AdmissionDeploymentName}
-	labels := map[string]string{"app": pkgcommon.AdmissionDeploymentName}
+	selector := map[string]string{"app": a.prefix()}
+	labels := map[string]string{"app": a.prefix()}
 
 	return assets.ServiceWithCustomLabels(
 		pkgcommon.AdmissionAPIServiceName,

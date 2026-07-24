@@ -14,16 +14,16 @@ import (
 
 // serviceAccount builds the ServiceAccount for the node sensor.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
+	return assets.ServiceAccount(n.prefix() + "-sensor-sa", n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the node sensor.
 func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
-		pkgcommon.ClusterGuardSensorClusterRoleBindingName,
+		n.prefix() + "-sensor-crb",
 		n.cfg.InstallNamespace,
 		pkgcommon.NodeClusterRoleName,
-		pkgcommon.ClusterGuardSensorServiceAccountName,
+		n.prefix() + "-sensor-sa",
 		pkgcommon.ClusterGuardComponentName,
 		[]rbacv1.Subject{},
 	)
@@ -31,13 +31,13 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 
 // cleanupServiceAccount builds the ServiceAccount for the node sensor cleanup DaemonSet.
 func (n *NodeSensor) cleanupServiceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorCleanupServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
+	return assets.ServiceAccount(n.prefix() + "-sensor-cleanup-sa", n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
 }
 
 func (n *NodeSensor) reconcileServiceAccount(ctx context.Context) error {
 	sa := n.serviceAccount()
 	_, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, sa, &corev1.ServiceAccount{},
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorServiceAccountName, Namespace: n.cfg.InstallNamespace},
+		types.NamespacedName{Name: n.prefix() + "-sensor-sa", Namespace: n.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard sensor ServiceAccount")
 	return err
 }
@@ -46,7 +46,7 @@ func (n *NodeSensor) reconcileClusterRoleBinding(ctx context.Context) error {
 	crb := n.clusterRoleBinding()
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, crb, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorClusterRoleBindingName},
+		types.NamespacedName{Name: n.prefix() + "-sensor-crb"},
 		"Failed to get FalconClusterGuard sensor ClusterRoleBinding")
 	if !found || err != nil {
 		return err

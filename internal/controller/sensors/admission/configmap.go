@@ -31,7 +31,7 @@ func (a *Admission) configMap() *corev1.ConfigMap {
 	data["__CS_SNAPSHOT_INTERVAL"] = cfg.GetSnapshotsInterval().String()
 	data["FALCONCTL_OPT_CID"] = a.cfg.Cid
 
-	return assets.SensorConfigMap(pkgcommon.AdmissionConfigMapName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)
+	return assets.SensorConfigMap(a.prefix() + "-config", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.
@@ -68,4 +68,46 @@ func (a *Admission) syncConfigMap(ctx context.Context, cm *corev1.ConfigMap, log
 func (a *Admission) reconcileConfigMap(ctx context.Context) (bool, error) {
 	cm := a.configMap()
 	return a.syncConfigMap(ctx, cm, "FalconClusterGuard")
+}
+
+// clusterNameConfigMap builds the cluster name ConfigMap.
+func (a *Admission) clusterNameConfigMap() *corev1.ConfigMap {
+	return assets.SensorConfigMap(
+		pkgcommon.FalconAdmissionClusterNameConfigMapName,
+		a.cfg.InstallNamespace,
+		pkgcommon.AdmissionComponentName,
+		map[string]string{"ClusterName": *a.cfg.ClusterName},
+	)
+}
+
+// reconcileClusterNameConfigMap creates or updates the cluster name ConfigMap when
+// ClusterName is set, or removes the ClusterName key when it is unset.
+func (a *Admission) reconcileClusterNameConfigMap(ctx context.Context) (bool, error) {
+	if a.cfg.ClusterName == nil {
+		return a.removeClusterNameConfigMapKey(ctx)
+	}
+	return a.syncConfigMap(ctx, a.clusterNameConfigMap(), "FalconClusterGuard ClusterName")
+}
+
+// removeClusterNameConfigMapKey deletes the ClusterName key from the cluster name
+// ConfigMap if it exists.
+func (a *Admission) removeClusterNameConfigMapKey(ctx context.Context) (bool, error) {
+	existing := &corev1.ConfigMap{}
+	err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(),
+		types.NamespacedName{
+			Name:      pkgcommon.FalconAdmissionClusterNameConfigMapName,
+			Namespace: a.cfg.InstallNamespace,
+		}, existing)
+	if err != nil {
+		return false, nil
+	}
+	if _, exists := existing.Data["ClusterName"]; !exists {
+		return false, nil
+	}
+	delete(existing.Data, "ClusterName")
+	existing.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return k8sutils.Update(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, existing)
+	})
+	return err == nil, err
 }

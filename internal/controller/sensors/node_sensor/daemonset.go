@@ -34,7 +34,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	namespace := n.cfg.InstallNamespace
 	nodeSpec := n.cfg.NodeSensor
 
-	dsLabels := pkgcommon.CRLabels("daemonset", pkgcommon.ClusterGuardSensorDaemonSetName, pkgcommon.ClusterGuardComponentName)
+	dsLabels := pkgcommon.CRLabels("daemonset", n.prefix() + "-sensor", pkgcommon.ClusterGuardComponentName)
 	privileged := true
 	runAsUser := int64(0)
 	hostPathType := corev1.HostPathUnset
@@ -81,7 +81,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	apiServiceName := pkgcommon.ClusterGuardAPIServiceName + "." + namespace + ".svc"
 
 	podSpec := corev1.PodSpec{
-		ServiceAccountName:            pkgcommon.ClusterGuardSensorServiceAccountName,
+		ServiceAccountName:            n.prefix() + "-sensor-sa",
 		TerminationGracePeriodSeconds: &terminationGracePeriod,
 		HostNetwork:                   true,
 		DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
@@ -114,7 +114,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 					{Name: "API_SERVICE_NAME", Value: apiServiceName},
 				},
 				VolumeMounts: []corev1.VolumeMount{
-					{Name: "falcon-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
+					{Name: n.prefix() + "-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
 					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
@@ -141,14 +141,14 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "falconstore", MountPath: pkgcommon.FalconStoreFile},
-					{Name: "falcon-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
+					{Name: n.prefix() + "-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
 					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
 		},
 		Volumes: []corev1.Volume{
 			{Name: "falconstore", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: pkgcommon.FalconStoreFile, Type: &hostPathType}}},
-			{Name: "falcon-sensor-tls-certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardSensorTLSSecretName}}},
+			{Name: n.prefix() + "-sensor-tls-certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: n.prefix() + "-sensor-tls"}}},
 			{Name: "falcon-api-ca", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardAPICASecretName}}},
 		},
 	}
@@ -164,16 +164,16 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			Kind:       "DaemonSet",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pkgcommon.ClusterGuardSensorDaemonSetName,
+			Name:      n.prefix() + "-sensor",
 			Namespace: namespace,
 			Labels:    dsLabels,
 		},
 		Spec: appsv1.DaemonSetSpec{
-			Selector:       &metav1.LabelSelector{MatchLabels: map[string]string{"app": pkgcommon.ClusterGuardSensorDaemonSetName}},
+			Selector:       &metav1.LabelSelector{MatchLabels: map[string]string{"app": n.prefix() + "-sensor"}},
 			UpdateStrategy: updateStrategy,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardSensorDaemonSetName, n.dsAutoPilotDeployAllowlistLabel),
+					Labels:      n.dsManageAutoPilotLabels("daemonset", n.prefix() + "-sensor", n.dsAutoPilotDeployAllowlistLabel),
 					Annotations: map[string]string{pkgcommon.FalconContainerInjection: "disabled"},
 				},
 				Spec: podSpec,
@@ -189,7 +189,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 	imageUri := n.cfg.Image
 	imagePullPolicy := n.cfg.ImagePullPolicy
 
-	dsLabels := pkgcommon.CRLabels("daemonset", pkgcommon.ClusterGuardSensorCleanupDaemonSetName, pkgcommon.ClusterGuardComponentName)
+	dsLabels := pkgcommon.CRLabels("daemonset", n.prefix() + "-sensor-cleanup", pkgcommon.ClusterGuardComponentName)
 
 	if imagePullPolicy == "" {
 		imagePullPolicy = corev1.PullIfNotPresent
@@ -207,23 +207,23 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 			Kind:       "DaemonSet",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pkgcommon.ClusterGuardSensorCleanupDaemonSetName,
+			Name:      n.prefix() + "-sensor-cleanup",
 			Namespace: namespace,
 			Labels:    dsLabels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": pkgcommon.ClusterGuardSensorCleanupDaemonSetName},
+				MatchLabels: map[string]string{"app": n.prefix() + "-sensor-cleanup"},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardSensorCleanupDaemonSetName, n.dsAutoPilotCleanupAllowlistLabel),
+					Labels: n.dsManageAutoPilotLabels("daemonset", n.prefix() + "-sensor-cleanup", n.dsAutoPilotCleanupAllowlistLabel),
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            pkgcommon.ClusterGuardSensorCleanupServiceAccountName,
+					ServiceAccountName:            n.prefix() + "-sensor-cleanup-sa",
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					HostPID:                       true,
 					NodeSelector: map[string]string{
@@ -399,12 +399,14 @@ func (n *NodeSensor) dsResources() corev1.ResourceRequirements {
 	return corev1.ResourceRequirements{}
 }
 
-// configMapName returns the ConfigMap name based on GKE settings
+// configMapName returns the ConfigMap name based on GKE settings.
+// For GKE autopilot, the WorkloadAllowlist requires the exact name.
+// Otherwise, the name is derived from the prefix.
 func (n *NodeSensor) configMapName() string {
 	if n.cfg.NodeSensor.GKE.Enabled != nil && *n.cfg.NodeSensor.GKE.Enabled {
 		return pkgcommon.GKEAutoPilotConfigMapName
 	}
-	return pkgcommon.ClusterGuardSensorConfigMapName
+	return n.prefix() + "-sensor-config"
 }
 
 // isInitReadOnlyRootFilesystem returns whether init container should have read-only root filesystem
@@ -446,7 +448,7 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 
 	existing := &appsv1.DaemonSet{}
 	found, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, ds, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorDaemonSetName, Namespace: n.cfg.InstallNamespace},
+		types.NamespacedName{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard sensor DaemonSet")
 	if !found || err != nil {
 		return err
@@ -454,7 +456,7 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if err := pkgcommon.GetWithFallback(ctx, n.r, n.r.GetK8sReader(),
-			types.NamespacedName{Name: pkgcommon.ClusterGuardSensorDaemonSetName, Namespace: n.cfg.InstallNamespace},
+			types.NamespacedName{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace},
 			existing); err != nil {
 			return err
 		}
@@ -629,7 +631,7 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 func (n *NodeSensor) reconcileCleanupServiceAccount(ctx context.Context) error {
 	sa := n.cleanupServiceAccount()
 	_, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, sa, &corev1.ServiceAccount{},
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorCleanupServiceAccountName, Namespace: n.cfg.InstallNamespace},
+		types.NamespacedName{Name: n.prefix() + "-sensor-cleanup-sa", Namespace: n.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard sensor cleanup ServiceAccount")
 	return err
 }
@@ -638,7 +640,7 @@ func (n *NodeSensor) reconcileCleanupDaemonSet(ctx context.Context) error {
 	ds := n.cleanupDaemonSet()
 	existing := &appsv1.DaemonSet{}
 	found, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, ds, existing,
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorCleanupDaemonSetName, Namespace: n.cfg.InstallNamespace},
+		types.NamespacedName{Name: n.prefix() + "-sensor-cleanup", Namespace: n.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard sensor cleanup DaemonSet")
 	if !found || err != nil {
 		return err

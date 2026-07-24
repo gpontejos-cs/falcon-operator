@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
@@ -33,8 +34,20 @@ type Config struct {
 	ImagePullSecrets []corev1.LocalObjectReference
 	Falcon           falconv1alpha1.FalconSensor
 	FalconAPI        *falconv1alpha1.FalconAPI
-	NodeSensor       falconv1alpha1.FalconNodeSensorConfig
+	NodeSensor       falconv1alpha1.FalconNodeBaseConfig
+	NamePrefix       string
 	Cid              string
+}
+
+const nodeSensorDefaultPrefix = "falcon-clusterguard"
+
+// prefix returns the name prefix to use for owned resources.
+// If NamePrefix is set in config, it is used; otherwise the default is returned.
+func (n *NodeSensor) prefix() string {
+	if n.cfg.NamePrefix != "" {
+		return n.cfg.NamePrefix
+	}
+	return nodeSensorDefaultPrefix
 }
 
 // NodeSensor owns the reconciliation of all node sensor sub-resources.
@@ -56,8 +69,12 @@ func (n *NodeSensor) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	if n.cfg.Owner.GetDeletionTimestamp() != nil {
 		if controllerutil.ContainsFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer) {
 			log.Info("FalconClusterGuard is being deleted, running finalization logic")
-			if err := n.finalize(ctx); err != nil {
+			done, err := n.finalize(ctx)
+			if err != nil {
 				return ctrl.Result{}, err
+			}
+			if !done {
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 			}
 			controllerutil.RemoveFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer)
 			if err := n.r.Update(ctx, n.cfg.Owner); err != nil {
@@ -95,105 +112,84 @@ func (n *NodeSensor) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-// finalize deletes the sensor DaemonSet, runs the cleanup DaemonSet on each node,
-// waits for completion, then removes the cleanup DaemonSet.
-func (n *NodeSensor) finalize(ctx context.Context) error {
-	dsCleanupName := pkgcommon.ClusterGuardSensorCleanupDaemonSetName
-	daemonset := &appsv1.DaemonSet{}
-	pods := corev1.PodList{}
-	dsList := &appsv1.DaemonSetList{}
-	var nodeCount int32
-
-	listOptions := &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{pkgcommon.FalconComponentKey: pkgcommon.ClusterGuardComponentName}),
-		Namespace:     n.cfg.InstallNamespace,
-	}
-	if err := n.r.List(ctx, dsList, listOptions); err != nil {
-		if err = n.r.GetK8sReader().List(ctx, dsList, listOptions); err != nil {
-			return err
-		}
-	}
+// finalize ensures the cleanup DaemonSet is running and all cleanup pods have completed
+// (reached Running phase, meaning init containers finished). Returns true when done.
+// It is safe to call on every reconcile — the delete and DaemonSet creation are idempotent.
+func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
+	dsCleanupName := n.prefix() + "-sensor-cleanup"
 
 	n.r.GetLog().Info("Deleting main sensor DaemonSet")
 	if err := n.r.Delete(ctx, &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardSensorDaemonSetName, Namespace: n.cfg.InstallNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace},
 	}); err != nil && !apierrors.IsNotFound(err) {
 		n.r.GetLog().Error(err, "Failed to delete main sensor DaemonSet")
-		return err
+		return false, err
 	}
 
-	n.r.GetLog().Info("Creating cleanup DaemonSet")
 	if err := n.reconcileCleanupDaemonSet(ctx); err != nil {
-		return err
+		return false, err
 	}
 
-	var lastCompletedCount int32
-	var lastNodeCount int32
+	daemonset := &appsv1.DaemonSet{}
+	if err := pkgcommon.GetWithFallback(ctx, n.r, n.r.GetK8sReader(),
+		types.NamespacedName{Name: dsCleanupName, Namespace: n.cfg.InstallNamespace}, daemonset); err != nil {
+		if apierrors.IsNotFound(err) {
+			n.r.GetLog().Info("Cleanup DaemonSet not found yet, requeueing...")
+			return false, nil
+		}
+		return false, err
+	}
+
+	pods := corev1.PodList{}
+	cleanupListOptions := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{"app": dsCleanupName}),
+		Namespace:     n.cfg.InstallNamespace,
+	}
+	if err := n.r.List(ctx, &pods, cleanupListOptions); err != nil {
+		if err = n.r.GetK8sReader().List(ctx, &pods, cleanupListOptions); err != nil {
+			return false, err
+		}
+	}
+
+	nodeCount := daemonset.Status.DesiredNumberScheduled
+	if nodeCount == 0 || len(pods.Items) == 0 {
+		n.r.GetLog().Info("Waiting for cleanup pods to be scheduled...")
+		return false, nil
+	}
+
+	var runningCount int32
 	var crashloopingPodNodes []string
-
-	n.r.GetLog().Info("Waiting for cleanup pods to complete")
-	for {
-		cleanupListOptions := &client.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labels.Set{"app": pkgcommon.ClusterGuardSensorCleanupDaemonSetName}),
-			Namespace:     n.cfg.InstallNamespace,
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			runningCount++
 		}
-		if err := n.r.List(ctx, &pods, cleanupListOptions); err != nil {
-			if err = n.r.GetK8sReader().List(ctx, &pods, cleanupListOptions); err != nil {
-				return err
-			}
-		}
-
-		if len(pods.Items) == 0 {
-			n.r.GetLog().Info("No cleanup pods found yet, waiting...")
-			continue
-		}
-
-		if err := pkgcommon.GetWithFallback(ctx, n.r, n.r.GetK8sReader(),
-			types.NamespacedName{Name: dsCleanupName, Namespace: n.cfg.InstallNamespace}, daemonset); err != nil {
-			if apierrors.IsNotFound(err) {
-				n.r.GetLog().Info("Cleanup DaemonSet not found, waiting for it to be created...")
-				continue
-			}
-			return err
-		}
-		nodeCount = daemonset.Status.DesiredNumberScheduled
-		readyCount := daemonset.Status.NumberReady
-
-		if readyCount != lastCompletedCount || nodeCount != lastNodeCount {
-			n.r.GetLog().Info(fmt.Sprintf("Cleanup progress: %d/%d pods ready", readyCount, nodeCount))
-			lastCompletedCount = readyCount
-			lastNodeCount = nodeCount
-		}
-
-		if readyCount == nodeCount && nodeCount > 0 {
-			n.r.GetLog().Info("All cleanup pods completed successfully")
-			break
-		}
-
-		// Check for failed/crashlooping pods
-		for _, pod := range pods.Items {
-			if pod.Status.Phase == corev1.PodFailed {
-				for _, status := range pod.Status.ContainerStatuses {
-					if status.State.Waiting != nil && status.State.Waiting.Reason == "CrashLoopBackOff" {
-						crashloopingPodNodes = append(crashloopingPodNodes, pod.Spec.NodeName)
-					}
+		if pod.Status.Phase == corev1.PodFailed {
+			for _, status := range pod.Status.ContainerStatuses {
+				if status.State.Waiting != nil && status.State.Waiting.Reason == "CrashLoopBackOff" {
+					crashloopingPodNodes = append(crashloopingPodNodes, pod.Spec.NodeName)
 				}
 			}
 		}
-
-		if len(crashloopingPodNodes) > 0 {
-			slices.Sort(crashloopingPodNodes)
-			crashloopingPodNodes = slices.Compact(crashloopingPodNodes)
-			n.r.GetLog().Info(fmt.Sprintf("Some cleanup pods are in CrashLoopBackOff on nodes: %v", crashloopingPodNodes))
-		}
 	}
 
-	n.r.GetLog().Info("Deleting cleanup DaemonSet")
+	if len(crashloopingPodNodes) > 0 {
+		slices.Sort(crashloopingPodNodes)
+		crashloopingPodNodes = slices.Compact(crashloopingPodNodes)
+		n.r.GetLog().Info(fmt.Sprintf("Some cleanup pods are in CrashLoopBackOff on nodes: %v", crashloopingPodNodes))
+	}
+
+	n.r.GetLog().Info(fmt.Sprintf("Cleanup progress: %d/%d pods running", runningCount, nodeCount))
+
+	if runningCount < nodeCount {
+		return false, nil
+	}
+
+	n.r.GetLog().Info("All cleanup pods completed, deleting cleanup DaemonSet")
 	if err := n.r.Delete(ctx, &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: dsCleanupName, Namespace: n.cfg.InstallNamespace},
 	}); err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }

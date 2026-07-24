@@ -37,12 +37,18 @@ type FalconClusterGuardRegistrySpec struct {
 }
 
 // FalconClusterGuardNodeSpec defines configuration for the node sensor DaemonSet deployed by FalconClusterGuard.
-// It is an alias of FalconNodeSensorConfig and will remain so until FalconNodeSensor is deprecated.
-type FalconClusterGuardNodeSpec = FalconNodeSensorConfig
+// It is an alias of FalconNodeBaseConfig and will remain so until FalconNodeSensor is deprecated.
+type FalconClusterGuardNodeSpec = FalconNodeBaseConfig
 
 // FalconClusterGuardAdmissionSpec defines configuration for the admission controller deployed by FalconClusterGuard.
-// It is an alias of FalconAdmissionConfigSpec and will remain so until FalconAdmission is deprecated.
-type FalconClusterGuardAdmissionSpec = FalconAdmissionConfigSpec
+// It is an alias of FalconAdmissionBaseConfig and will remain so until FalconAdmission is deprecated.
+type FalconClusterGuardAdmissionSpec struct {
+	FalconAdmissionBaseConfig `json:",inline"`
+
+	// Cluster Name if Falcon KAC cannot discover the cluster name. This will be overwritten if Falcon KAC is able to discover the cluster name.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=21
+	ClusterName *string `json:"clusterName,omitempty"`
+}
 
 // FalconClusterGuardSpec defines the desired state of FalconClusterGuard
 type FalconClusterGuardSpec struct {
@@ -169,6 +175,11 @@ func (f *FalconClusterGuard) GetFalconSpec() FalconSensor {
 // SetFalconSpec sets the FalconSensor configuration
 func (f *FalconClusterGuard) SetFalconSpec(sensor FalconSensor) {
 	f.Spec.Falcon = sensor
+}
+
+// GetClusterName returns the cluster name from admissionConfig.
+func (f *FalconClusterGuard) GetClusterName() *string {
+	return f.Spec.AdmissionConfig.ClusterName
 }
 
 // GetConditions returns a pointer to the Conditions slice for status updates

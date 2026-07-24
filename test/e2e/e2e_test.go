@@ -168,6 +168,8 @@ var _ = Describe("falcon", Ordered, func() {
 			kind = kacConfig.kind
 		} else if slices.Contains(labels, "FalconContainer") {
 			kind = sidecarConfig.kind
+		} else if slices.Contains(labels, "FalconClusterGuard") {
+			kind = fcgConfig.kind
 		}
 
 		if kind != "" {
@@ -203,12 +205,17 @@ var _ = Describe("falcon", Ordered, func() {
 		cmd = exec.Command("kubectl", "delete", "falconimageanalyzer", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
 		_, _ = utils.Run(cmd)
 
+		By("deleting FalconClusterGuard instances")
+		cmd = exec.Command("kubectl", "delete", "falconclusterguard", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
 		// Clean up test-created namespaces
 		By("cleaning up test namespaces")
 		testNamespaces := []string{
 			nodeConfig.namespace,  // falcon-system
 			kacConfig.namespace,   // falcon-kac
 			iarConfig.namespace,   // falcon-iar
+			fcgConfig.namespace,   // falcon-sensor
 			falconSecretNamespace, // falcon-secrets
 		}
 
@@ -1209,6 +1216,22 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Cluster Guard", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should deploy successfully", func() {
+			updateManifestApiCreds(manifest)
+			fcgConfig.manageCrdInstance(crApply, manifest)
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+			fcgConfig.validateDefaultValues()
+		})
+		It("should cleanup successfully", func() {
+			fcgConfig.manageCrdInstance(crDelete, manifest)
+			fcgConfig.validateRunningStatus(shouldBeTerminated)
+			fcgConfig.waitForNamespaceDeletion()
 		})
 	})
 })

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // FalconClusterGuardReconciler reconciles a FalconClusterGuard object
@@ -47,6 +48,7 @@ type FalconClusterGuardReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	labelPredicate := predicates.CrowdStrikeLabel()
+	generationOrLabel := predicate.Or(predicate.GenerationChangedPredicate{}, labelPredicate)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconClusterGuard{}, builder.WithPredicates(labelPredicate)).
 		Owns(&corev1.Namespace{}, builder.WithPredicates(labelPredicate)).
@@ -56,8 +58,8 @@ func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.Service{}, builder.WithPredicates(labelPredicate)).
 		Owns(&rbacv1.ClusterRoleBinding{}, builder.WithPredicates(labelPredicate)).
 		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(labelPredicate)).
-		Owns(&appsv1.Deployment{}, builder.WithPredicates(labelPredicate)).
-		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(labelPredicate)).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(generationOrLabel)).
+		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(generationOrLabel)).
 		Owns(&arv1.ValidatingWebhookConfiguration{}, builder.WithPredicates(labelPredicate)).
 		Complete(r)
 }
@@ -104,19 +106,19 @@ func (r *FalconClusterGuardReconciler) GetLog() logr.Logger {
 func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.log = log.FromContext(ctx)
 
-	r.log.Info("Reconciling FalconClusterGuard")
-
 	falconClusterGuard := &falconv1alpha1.FalconClusterGuard{}
 	err := common.GetWithFallback(ctx, r.Client, r.Reader, req.NamespacedName, falconClusterGuard)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.log.Info("FalconClusterGuard resource not found. Ignoring since object must be deleted")
+			r.log.V(1).Info("FalconClusterGuard resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 
 		r.log.Error(err, "Failed to get FalconClusterGuard resource")
 		return ctrl.Result{}, err
 	}
+
+	r.log.Info("Reconciling FalconClusterGuard")
 
 	// Set initial pending status when no conditions exist yet
 	if len(falconClusterGuard.Status.Conditions) == 0 {
@@ -227,7 +229,7 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Create/update the CrowdStrike registry pull secret when the resolved image references
 	// a CrowdStrike-owned registry and we have API credentials to obtain a token.
 	imagePullSecrets := falconClusterGuard.Spec.ImagePullSecrets
-	if r.apiConfig != nil && isCrowdStrikeRegistry(imageURI) {
+	if falconClusterGuard.Spec.Registry.Type == falconv1alpha1.RegistryTypeFalconClusterGuardCrowdStrike {
 		if err := r.reconcileImagePullSecret(ctx, req, falconClusterGuard); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -245,7 +247,8 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Image:            imageURI,
 		ImagePullPolicy:  falconClusterGuard.Spec.ImagePullPolicy,
 		ImagePullSecrets: imagePullSecrets,
-		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig,
+		AdmissionConfig:  falconClusterGuard.Spec.AdmissionConfig.FalconAdmissionBaseConfig,
+		ClusterName:      falconClusterGuard.GetClusterName(),
 		RegistryTLS:      falconClusterGuard.Spec.Registry.TLS,
 		Cid:              r.cid,
 		Falcon:           falconClusterGuard.Spec.Falcon,

@@ -72,8 +72,8 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
 			Labels: map[string]string{
-				"app":                            pkgcommon.AdmissionDeploymentName,
-				pkgcommon.KubernetesNameKey:      pkgcommon.AdmissionDeploymentName,
+				"app":                            a.prefix(),
+				pkgcommon.KubernetesNameKey:      a.prefix(),
 				pkgcommon.KubernetesComponentKey: pkgcommon.AdmissionComponentName,
 				pkgcommon.FalconProviderKey:      pkgcommon.FalconProviderValue,
 			},

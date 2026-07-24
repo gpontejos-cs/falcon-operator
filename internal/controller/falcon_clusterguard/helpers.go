@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"reflect"
-	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -19,12 +18,6 @@ import (
 func (r *FalconClusterGuardReconciler) injectFalconSecretData(ctx context.Context, fcg *falconv1alpha1.FalconClusterGuard) error {
 	r.log.Info("Injecting Falcon secret data into Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
 	return k8sutils.InjectFalconSecretData(ctx, r, fcg)
-}
-
-// isCrowdStrikeRegistry reports whether imageURI references a CrowdStrike-owned registry.
-func isCrowdStrikeRegistry(imageURI string) bool {
-	host := strings.SplitN(imageURI, "/", 2)[0]
-	return strings.Contains(host, "crowdstrike.com") || strings.Contains(host, "crowdstrike.mil")
 }
 
 // reconcileImagePullSecret creates or updates the CrowdStrike registry pull secret in the

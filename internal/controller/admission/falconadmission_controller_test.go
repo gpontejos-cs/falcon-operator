@@ -92,7 +92,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						DepUpdateStrategy: falconv1alpha1.FalconAdmissionUpdateStrategy{
 							RollingUpdate: falconv1alpha1.FalconAdmissionRollingUpdate{
 								MaxUnavailable: &intstr.IntOrString{IntVal: 1},
@@ -1243,7 +1243,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						Tolerations: []corev1.Toleration{
 							{
 								Key:      "disk-pressure",
@@ -1299,7 +1299,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						Tolerations: []corev1.Toleration{
 							{
 								Key:      "custom-taint",
@@ -1405,7 +1405,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						Tolerations: []corev1.Toleration{
 							{
 								Key:      "initial-taint",
@@ -1508,7 +1508,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						Tolerations: []corev1.Toleration{
 							{
 								Key:      "app",
@@ -1620,7 +1620,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					Registry: falconv1alpha1.RegistrySpec{
 						Type: "crowdstrike",
 					},
-					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+					AdmissionConfig: falconv1alpha1.FalconAdmissionBaseConfig{
 						Tolerations: []corev1.Toleration{
 							{
 								Key:      "node-role",

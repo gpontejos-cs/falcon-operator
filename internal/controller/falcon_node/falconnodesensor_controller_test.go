@@ -112,7 +112,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 								CID: &falconCID,
 							},
 						},
-						Node: falconv1alpha1.FalconNodeSensorConfig{
+						Node: falconv1alpha1.FalconNodeConfig{
 							Image: "example.com/image:test",
 						},
 						InstallNamespace: sensorNamespacedName.Namespace,
@@ -278,7 +278,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 						},
 						Cloud: cloudRegion,
 					},
-					Node: falconv1alpha1.FalconNodeSensorConfig{
+					Node: falconv1alpha1.FalconNodeConfig{
 						Image: "example.com/image:test",
 					},
 					FalconSecret: falconv1alpha1.FalconSecret{
@@ -372,12 +372,14 @@ var _ = Describe("FalconNodeSensor controller", func() {
 							CID: &falconCID,
 						},
 					},
-					Node: falconv1alpha1.FalconNodeSensorConfig{
+					Node: falconv1alpha1.FalconNodeConfig{
 						Image: "example.com/image:test",
-						ServiceAccount: falconv1alpha1.FalconNodeServiceAccount{
-							Annotations: map[string]string{
-								"test-annotation": "test-value",
-								"another-key":     "another-value",
+						FalconNodeBaseConfig: falconv1alpha1.FalconNodeBaseConfig{
+							ServiceAccount: falconv1alpha1.FalconNodeServiceAccount{
+								Annotations: map[string]string{
+									"test-annotation": "test-value",
+									"another-key":     "another-value",
+								},
 							},
 						},
 					},

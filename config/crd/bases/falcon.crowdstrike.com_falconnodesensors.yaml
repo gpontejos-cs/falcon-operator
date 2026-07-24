@@ -142,8 +142,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:

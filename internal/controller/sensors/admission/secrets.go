@@ -17,7 +17,7 @@ import (
 func (a *Admission) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, error) {
 	existing := &corev1.Secret{}
 	namespace := a.cfg.InstallNamespace
-	err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: pkgcommon.AdmissionTLSSecretName, Namespace: namespace}, existing)
+	err := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: a.prefix() + "-tls", Namespace: namespace}, existing)
 	if err != nil && apierrors.IsNotFound(err) {
 		svcName := fmt.Sprintf("%s.%s.svc", pkgcommon.AdmissionWebhookServiceName, namespace)
 		altDNSNames := []string{
@@ -30,7 +30,7 @@ func (a *Admission) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, err
 			a.r.GetLog().Error(err, "Failed to generate FalconClusterGuard TLS certificates")
 			return &corev1.Secret{}, err
 		}
-		tlsSecret := assets.Secret(pkgcommon.AdmissionTLSSecretName, namespace, pkgcommon.AdmissionComponentName,
+		tlsSecret := assets.Secret(a.prefix() + "-tls", namespace, pkgcommon.AdmissionComponentName,
 			map[string][]byte{"tls.crt": cert, "tls.key": key, "ca.crt": ca}, corev1.SecretTypeTLS)
 		if err := k8sutils.Create(a.r, a.r.GetScheme(), ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, tlsSecret); err != nil {
 			return &corev1.Secret{}, err
@@ -54,7 +54,7 @@ func (a *Admission) reconcileAPITLSSecrets(ctx context.Context) error {
 	existingCA := &corev1.Secret{}
 	errCA := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: pkgcommon.AdmissionAPICASecretName, Namespace: namespace}, existingCA)
 	existingSensor := &corev1.Secret{}
-	errSensor := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: pkgcommon.ClusterGuardSensorTLSSecretName, Namespace: namespace}, existingSensor)
+	errSensor := pkgcommon.GetWithFallback(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: a.prefix() + "-sensor-tls", Namespace: namespace}, existingSensor)
 	if errAPI == nil && errCA == nil && errSensor == nil {
 		return nil
 	}
@@ -67,7 +67,7 @@ func (a *Admission) reconcileAPITLSSecrets(ctx context.Context) error {
 		a.r.GetLog().Error(err, "Failed to generate FalconClusterGuard API TLS certificates")
 		return err
 	}
-	sensorSvcName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardSensorServiceAccountName, namespace)
+	sensorSvcName := fmt.Sprintf("%s.%s.svc", a.prefix() + "-sensor-sa", namespace)
 	clientCert, clientKey, _, err := tls.CertSetup(namespace, 3650, tls.CertInfo{
 		CommonName: "falcon-sensor-client",
 		DNSNames:   []string{sensorSvcName},
@@ -97,7 +97,7 @@ func (a *Admission) reconcileAPITLSSecrets(ctx context.Context) error {
 		return errCA
 	}
 	if apierrors.IsNotFound(errSensor) {
-		s := assets.Secret(pkgcommon.ClusterGuardSensorTLSSecretName, namespace, pkgcommon.AdmissionComponentName,
+		s := assets.Secret(a.prefix() + "-sensor-tls", namespace, pkgcommon.AdmissionComponentName,
 			map[string][]byte{"tls.crt": clientCert, "tls.key": clientKey}, corev1.SecretTypeTLS)
 		if err := k8sutils.Create(a.r, a.r.GetScheme(), ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, s); err != nil {
 			return err

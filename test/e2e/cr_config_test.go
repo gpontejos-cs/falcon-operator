@@ -63,6 +63,12 @@ var (
 		namespace:    namespace,
 		metadataName: "falcon-deployment",
 	}
+	fcgConfig = crConfig{
+		kind:          "FalconClusterGuard",
+		namespace:     "falcon-sensor",
+		metadataName:  "falcon-clusterguard",
+		componentName: "ksp",
+	}
 	projectDir, _ = utils.GetProjectDir()
 	crApply       = crOperation{command: "apply", action: "creating"}
 	crDelete      = crOperation{command: "delete", action: "deleting"}
@@ -83,23 +89,28 @@ func (cr crConfig) validateCrStatus() {
 			return fmt.Errorf("Success condition status should be True, got: %s", status)
 		}
 
-		// Check resource-specific condition (DaemonSetReady or DeploymentReady)
-		var conditionType string
-		if cr.kind == "FalconNodeSensor" {
-			conditionType = "DaemonSetReady"
-		} else {
-			conditionType = "DeploymentReady"
+		// Check resource-specific condition (DaemonSetReady, DeploymentReady, or both for FalconClusterGuard)
+		var conditionTypes []string
+		switch cr.kind {
+		case "FalconNodeSensor":
+			conditionTypes = []string{"DaemonSetReady"}
+		case "FalconClusterGuard":
+			conditionTypes = []string{"DeploymentReady", "DaemonSetReady"}
+		default:
+			conditionTypes = []string{"DeploymentReady"}
 		}
 
-		cmd = exec.Command("kubectl", "get", strings.ToLower(cr.kind),
-			cr.metadataName, "-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", conditionType),
-			"-n", cr.namespace,
-		)
-		status, err = utils.Run(cmd)
-		fmt.Printf("%s: %s\n", conditionType, string(status))
-		ExpectWithOffset(2, err).NotTo(HaveOccurred())
-		if string(status) != "True" {
-			return fmt.Errorf("%s condition status should be True, got: %s", conditionType, status)
+		for _, conditionType := range conditionTypes {
+			cmd = exec.Command("kubectl", "get", strings.ToLower(cr.kind),
+				cr.metadataName, "-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", conditionType),
+				"-n", cr.namespace,
+			)
+			status, err = utils.Run(cmd)
+			fmt.Printf("%s: %s\n", conditionType, string(status))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if string(status) != "True" {
+				return fmt.Errorf("%s condition status should be True, got: %s", conditionType, status)
+			}
 		}
 
 		// For DaemonSets with init containers, verify primary container is running
