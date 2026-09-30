@@ -146,6 +146,7 @@ rules:
   - falcondeployments
   - falconimageanalyzers
   - falconnodesensors
+  - falconsensorupdatepolicies
   verbs:
   - create
   - delete
@@ -161,6 +162,7 @@ rules:
   - falcondeployments/finalizers
   - falconimageanalyzers/finalizers
   - falconnodesensors/finalizers
+  - falconsensorupdatepolicies/finalizers
   verbs:
   - update
 - apiGroups:
@@ -172,6 +174,7 @@ rules:
   - falcondeployments/status
   - falconimageanalyzers/status
   - falconnodesensors/status
+  - falconsensorupdatepolicies/status
   verbs:
   - get
   - patch

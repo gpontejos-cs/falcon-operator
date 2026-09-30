@@ -45,6 +45,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
+	falconcontroller "github.com/crowdstrike/falcon-operator/internal/controller/sensor_update_policy"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	falcondeployment "github.com/crowdstrike/falcon-operator/internal/controller/falcon_deployment"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
@@ -320,6 +321,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconDeployment")
+		os.Exit(1)
+	}
+	if err := (&falconcontroller.FalconSensorUpdatePolicyReconciler{
+		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "falconsensorupdatepolicy")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
