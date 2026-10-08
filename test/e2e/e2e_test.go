@@ -1370,6 +1370,7 @@ var _ = Describe("falcon", Ordered, func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		fakeCID := "0123456789abcdef0123456789abcdef-12"
 		var bundledImage string
+		restoreOperatorEnv := func() {}
 
 		// newAdmission returns the sample FalconAdmission configured as in an isolated environment:
 		// no Falcon API credentials and an explicit CID
@@ -1382,11 +1383,15 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 
 		BeforeAll(func() {
-			bundledImage = useBundledImage(relatedImageEnv, "example.com/falcon-kac:bundled-e2e")
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-kac:bundled-e2e")
 		})
 
 		AfterEach(func() {
 			kacConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
 		})
 
 		It("should use the bundled image when no Falcon API credentials are configured", func() {
@@ -1431,7 +1436,7 @@ var _ = Describe("falcon", Ordered, func() {
 				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
 			}
 
-			// The env var is restored by the cleanup registered in BeforeAll
+			// The env var is restored in AfterAll
 			setOperatorEnv(deployment, relatedImageEnv, "")
 			Expect(applyManifest(newAdmission(), kacConfig.namespace)).To(Succeed())
 			kacConfig.validateNotDeployed(time.Minute)
@@ -1443,17 +1448,22 @@ var _ = Describe("falcon", Ordered, func() {
 		const customImage = "example.com/falcon-imageanalyzer:custom-e2e"
 		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
 		var bundledImage string
+		restoreOperatorEnv := func() {}
 
 		BeforeAll(func() {
 			clientID, clientSecret := getCredentials()
 			if clientID == "" || clientSecret == "" {
 				Skip("FALCON_CLIENT_ID and FALCON_CLIENT_SECRET are required: FalconImageAnalyzer always requires Falcon API credentials")
 			}
-			bundledImage = useBundledImage("RELATED_IMAGE_IMAGE_ANALYZER", "example.com/falcon-imageanalyzer:bundled-e2e")
+			bundledImage, restoreOperatorEnv = useBundledImage("RELATED_IMAGE_IMAGE_ANALYZER", "example.com/falcon-imageanalyzer:bundled-e2e")
 		})
 
 		AfterEach(func() {
 			iarConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
 		})
 
 		It("should not use the bundled image because credentials are always configured", func() {
@@ -1480,6 +1490,7 @@ var _ = Describe("falcon", Ordered, func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer.yaml"
 		fakeCID := "0123456789abcdef0123456789abcdef-12"
 		var bundledImage string
+		restoreOperatorEnv := func() {}
 
 		// newContainer returns the sample FalconContainer configured as in an isolated environment:
 		// no Falcon API credentials and an explicit CID. Default namespace injection is disabled because
@@ -1498,11 +1509,15 @@ var _ = Describe("falcon", Ordered, func() {
 			if isOpenShift() {
 				Skip("FalconContainer is not supported on OpenShift - skipping")
 			}
-			bundledImage = useBundledImage(relatedImageEnv, "example.com/falcon-container:bundled-e2e")
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-container:bundled-e2e")
 		})
 
 		AfterEach(func() {
 			sidecarConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
 		})
 
 		It("should use the bundled image when no Falcon API credentials are configured", func() {
@@ -1548,7 +1563,7 @@ var _ = Describe("falcon", Ordered, func() {
 				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
 			}
 
-			// The env var is restored by the cleanup registered in BeforeAll
+			// The env var is restored in AfterAll
 			setOperatorEnv(deployment, relatedImageEnv, "")
 			Expect(applyManifest(newContainer(), sidecarConfig.namespace)).To(Succeed())
 			sidecarConfig.validateNotDeployed(time.Minute)
@@ -1564,6 +1579,7 @@ var _ = Describe("falcon", Ordered, func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor.yaml"
 		fakeCID := "0123456789abcdef0123456789abcdef-12"
 		var bundledImage string
+		restoreOperatorEnv := func() {}
 
 		// newNodeSensor returns the sample FalconNodeSensor configured as in an isolated environment:
 		// no Falcon API credentials and an explicit CID. Node cleanup is disabled because the cleanup
@@ -1580,11 +1596,15 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 
 		BeforeAll(func() {
-			bundledImage = useBundledImage(relatedImageEnv, "example.com/falcon-sensor:bundled-e2e")
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-sensor:bundled-e2e")
 		})
 
 		AfterEach(func() {
 			nodeConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
 		})
 
 		It("should use the bundled image when no Falcon API credentials are configured", func() {
@@ -1632,7 +1652,7 @@ var _ = Describe("falcon", Ordered, func() {
 				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
 			}
 
-			// The env var is restored by the cleanup registered in BeforeAll
+			// The env var is restored in AfterAll
 			setOperatorEnv(deployment, relatedImageEnv, "")
 			Expect(applyManifest(newNodeSensor(), nodeConfig.namespace)).To(Succeed())
 			nodeConfig.validateNotDeployed(time.Minute)

@@ -183,11 +183,10 @@ func validateOperatorLogError(expectedError string) {
 	EventuallyWithOffset(1, validateLogs, defaultTimeout, defaultPollPeriod).Should(Succeed())
 }
 
-// useBundledImage makes the operator run with the RELATED_IMAGE_* env var set, as it is when installed
-// through the OpenShift OLM bundle, and returns the bundled image. When the operator is not managed by OLM,
-// the env var is set to fakeImage and restored when the current container finishes. When it is managed
-// by OLM, the bundle's existing value is used and the container is skipped if the bundle does not set it.
-func useBundledImage(envVar, fakeImage string) string {
+// useBundledImage sets the RELATED_IMAGE_* env var on the operator, as the OpenShift OLM bundle does, and
+// returns the image and a function that restores the env var. Under OLM, the bundle's value is used instead.
+// Restore it from an AfterAll, not DeferCleanup, which runs after the suite's AfterAll undeploys the operator.
+func useBundledImage(envVar, fakeImage string) (string, func()) {
 	deployment := operatorDeploymentName()
 	original := getOperatorEnv(deployment, envVar)
 
@@ -195,12 +194,11 @@ func useBundledImage(envVar, fakeImage string) string {
 		if original == "" {
 			Skip(fmt.Sprintf("operator is managed by OLM and the bundle does not set %s", envVar))
 		}
-		return original
+		return original, func() {}
 	}
 
 	setOperatorEnv(deployment, envVar, fakeImage)
-	DeferCleanup(func() {
+	return fakeImage, func() {
 		setOperatorEnv(deployment, envVar, original)
-	})
-	return fakeImage
+	}
 }
