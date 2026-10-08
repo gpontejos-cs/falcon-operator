@@ -105,4 +105,13 @@ When deploying the Falcon CRD's, ensure you are specifying the images in your mi
 | --------------------- | --------------------------- |
 | `FalconNodeSensor`    | `spec.node.image`           |
 | `FalconAdmission`     | `spec.image`                |
+| `FalconContainer`     | `spec.image`                |
 | `FalconImageAnalyzer` | `spec.image`                |
+
+If the image is not specified, the operator chooses the image in the following order:
+
+1. The CrowdStrike API, if Falcon API credentials are configured (both `falcon_api.client_id` and `falcon_api.client_secret`, or `falconSecret.enabled: true`). The image returned by the CrowdStrike API may not exist in your mirror registry.
+2. The image bundled with the operator (`RELATED_IMAGE_*`), if no Falcon API credentials are configured.
+
+> [!IMPORTANT]
+> `FalconImageAnalyzer` always requires Falcon API credentials, so the operator never uses its bundled image. You must set `spec.image` to the Falcon Image Analyzer image in your mirror registry.

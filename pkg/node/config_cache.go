@@ -34,11 +34,13 @@ func NewConfigCache(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 		nodesensor: nodesensor,
 	}
 
-	if nodesensor.Spec.FalconAPI != nil {
-		cache.falconApiConfig = nodesensor.Spec.FalconAPI.ApiConfig()
+	if fa := nodesensor.Spec.FalconAPI; fa != nil {
+		if fa.IsConfigured(nodesensor.GetFalconSecretSpec()) {
+			cache.falconApiConfig = fa.ApiConfig()
+		}
 
-		if nodesensor.Spec.FalconAPI.CID != nil {
-			cache.cid = *nodesensor.Spec.FalconAPI.CID
+		if fa.CID != nil {
+			cache.cid = *fa.CID
 		}
 	}
 

@@ -24,6 +24,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	types "k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) error {
@@ -144,6 +145,9 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-container", *falconContainer.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
+		if !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
+			return "", fmt.Errorf("falcon_api or falconSecret must be configured when using CrowdStrike registry")
+		}
 		cloud, err := falconContainer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconContainer.Spec.FalconSecret)
 		if err != nil {
 			return "", err
@@ -161,7 +165,9 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 	}
 
 	sidecarImage := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
-	if sidecarImage != "" && falconContainer.Spec.FalconAPI == nil {
+	if sidecarImage != "" && !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
+		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_SIDECAR_SENSOR for isolated environment",
+			"image", sidecarImage)
 		return sidecarImage, nil
 	}
 
@@ -212,8 +218,10 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
-	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
+	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
+		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_SIDECAR_SENSOR for isolated environment",
+			"image", image)
 		falconContainer.Status.Sensor = common.ImageVersion(image)
 
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
