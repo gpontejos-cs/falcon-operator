@@ -180,7 +180,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
 		}
 	} else if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
-		log.Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_ADMISSION_CONTROLLER for isolated environment",
+		log.Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_ADMISSION_CONTROLLER",
 			"image", os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER"))
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)

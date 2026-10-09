@@ -175,7 +175,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)
 		}
 	} else if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
-		log.Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_IMAGE_ANALYZER for isolated environment",
+		log.Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_IMAGE_ANALYZER",
 			"image", os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER"))
 		if _, err := r.setImageTag(ctx, falconImageAnalyzer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)

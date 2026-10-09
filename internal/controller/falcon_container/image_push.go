@@ -166,7 +166,7 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 
 	sidecarImage := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
 	if sidecarImage != "" && !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_SIDECAR_SENSOR for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_SIDECAR_SENSOR",
 			"image", sidecarImage)
 		return sidecarImage, nil
 	}
@@ -220,7 +220,7 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 
 	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_SIDECAR_SENSOR for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_SIDECAR_SENSOR",
 			"image", image)
 		falconContainer.Status.Sensor = common.ImageVersion(image)
 

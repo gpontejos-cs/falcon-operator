@@ -16,6 +16,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
@@ -138,6 +139,8 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 
 	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
 	if nodeImage != "" && cc.falconApiConfig == nil {
+		log.FromContext(ctx).Info("spec.node.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_NODE_SENSOR",
+			"image", nodeImage)
 		return nodeImage, nil
 	}
 

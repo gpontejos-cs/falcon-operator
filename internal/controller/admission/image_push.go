@@ -156,7 +156,7 @@ func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmissio
 
 	admissionImage := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
 	if admissionImage != "" && !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_ADMISSION_CONTROLLER for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_ADMISSION_CONTROLLER",
 			"image", admissionImage)
 		return admissionImage, nil
 	}
@@ -210,7 +210,7 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 
 	if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_ADMISSION_CONTROLLER for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_ADMISSION_CONTROLLER",
 			"image", image)
 		falconAdmission.Status.Sensor = common.ImageVersion(image)
 

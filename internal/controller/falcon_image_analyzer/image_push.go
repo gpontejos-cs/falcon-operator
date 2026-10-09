@@ -156,7 +156,7 @@ func (r *FalconImageAnalyzerReconciler) imageUri(ctx context.Context, falconImag
 
 	imageAnalyzerImage := os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER")
 	if imageAnalyzerImage != "" && !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_IMAGE_ANALYZER for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_IMAGE_ANALYZER",
 			"image", imageAnalyzerImage)
 		return imageAnalyzerImage, nil
 	}
@@ -209,7 +209,7 @@ func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconI
 
 	if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER")
-		log.FromContext(ctx).Info("spec.Image not set and FalconAPI credentials not configured; using RELATED_IMAGE_IMAGE_ANALYZER for isolated environment",
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_IMAGE_ANALYZER",
 			"image", image)
 		falconImageAnalyzer.Status.Sensor = common.ImageVersion(image)
 
